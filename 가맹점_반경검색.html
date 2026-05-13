@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가맹점 반경 검색</title>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+/* ─── Reset & Base ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0d0d;
+  --surface: #161616;
+  --surface2: #1f1f1f;
+  --surface3: #2a2a2a;
+  --border: #2e2e2e;
+  --border-light: #3d3d3d;
+  --text: #f0f0f0;
+  --text-muted: #888;
+  --text-dim: #555;
+  --accent: #ffffff;
+  --accent-dim: rgba(255,255,255,0.06);
+  --accent-hover: rgba(255,255,255,0.1);
+  --danger: #ff4444;
+  --success: #55dd77;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --transition: 0.18s ease;
+}
+html { font-size: 15px; }
+body {
+  font-family: 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ─── Scrollbar ────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* ─── Layout ───────────────────────────────────────── */
+.app-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky; top: 0; z-index: 100;
+}
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 58px;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.95rem; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--text);
+}
+.logo-icon {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-icon svg { display: block; }
+
+.tab-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.tab-nav-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 28px;
+  display: flex;
+  gap: 0;
+}
+.tab-btn {
+  padding: 14px 24px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+  display: flex; align-items: center; gap: 7px;
+  letter-spacing: 0.02em;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.tab-badge {
+  font-size: 0.7rem;
+  background: var(--surface3);
+  color: var(--text-muted);
+  border-radius: 20px;
+  padding: 1px 7px;
+  font-weight: 500;
+}
+.tab-btn.active .tab-badge {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 36px 28px;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ─── Section layout ────────────────────────────────── */
+.section-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .section-grid { grid-template-columns: 1fr; }
+}
+
+/* ─── Card ─────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.card-head {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-head-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.card-body { padding: 22px; }
+
+/* ─── Form elements ─────────────────────────────────── */
+.field { margin-bottom: 18px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.field-hint {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color var(--transition), background var(--transition);
+}
+input::placeholder, textarea::placeholder { color: var(--text-dim); }
+input:focus, textarea:focus {
+  border-color: #666;
+  background: var(--surface3);
+}
+textarea { resize: vertical; line-height: 1.7; }
+
+/* ─── Buttons ───────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), opacity var(--transition);
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+
+.btn-white {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+.btn-white:hover:not(:disabled) { background: #e0e0e0; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border-light);
+}
+.btn-ghost:hover:not(:disabled) {
+  color: var(--text);
+  border-color: #555;
+  background: var(--accent-dim);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border-light);
+}
+.btn-outline:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: #666;
+}
+
+.btn-full { width: 100%; }
+.btn-lg { padding: 13px 24px; font-size: 0.9rem; }
+
+/* ─── Stat chips ────────────────────────────────────── */
+.stat-row {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  margin-bottom: 20px;
+}
+.stat-chip {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 0.82rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.stat-chip-label { color: var(--text-dim); }
+.stat-chip-val { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ─── Result header ─────────────────────────────────── */
+.result-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+  margin-bottom: 16px;
+}
+.result-bar-left h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.result-bar-left p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ─── Table ─────────────────────────────────────────── */
+.table-outer {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+thead th {
+  background: var(--surface2);
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--accent-dim); }
+tbody td {
+  padding: 12px 16px;
+  color: var(--text);
+  vertical-align: middle;
+}
+td.cell-no {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  width: 50px;
+  text-align: right;
+  font-size: 0.78rem;
+}
+td.cell-dist {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+td.cell-addr {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  max-width: 240px;
+  word-break: break-all;
+}
+td.cell-code {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.coord-tag {
+  display: inline-block;
+  background: var(--surface3);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ─── Loading ───────────────────────────────────────── */
+.loading-overlay {
+  display: none;
+  padding: 48px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.loading-overlay.show { display: block; }
+.spinner {
+  display: inline-block;
+  width: 20px; height: 20px;
+  border: 2px solid var(--border-light);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Alert ─────────────────────────────────────────── */
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  display: none;
+  margin-top: 14px;
+}
+.alert.show { display: block; }
+.alert-error {
+  background: rgba(255,68,68,0.08);
+  border: 1px solid rgba(255,68,68,0.25);
+  color: #ff8080;
+}
+.alert-success {
+  background: rgba(85,221,119,0.08);
+  border: 1px solid rgba(85,221,119,0.25);
+  color: #77ee99;
+}
+.alert-info {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* ─── Drop zone ─────────────────────────────────────── */
+.drop-zone {
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius);
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+  background: var(--surface2);
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: #666;
+  background: var(--surface3);
+}
+.drop-zone-icon {
+  width: 44px; height: 44px;
+  margin: 0 auto 14px;
+  background: var(--surface3);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.drop-zone p { font-size: 0.85rem; color: var(--text-muted); }
+.drop-zone strong { color: var(--text); }
+.drop-zone small { font-size: 0.75rem; color: var(--text-dim); display: block; margin-top: 6px; }
+#file-input { display: none; }
+
+/* ─── Data status bar ───────────────────────────────── */
+.data-status {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.83rem;
+  gap: 10px;
+}
+.data-status-indicator {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+.data-status-indicator.ok { background: var(--success); box-shadow: 0 0 6px rgba(85,221,119,0.5); }
+.data-status-indicator.err { background: var(--danger); }
+.data-status-text { flex: 1; color: var(--text-muted); }
+.data-status-text strong { color: var(--text); }
+
+/* ─── Lock screen ───────────────────────────────────── */
+.lock-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+.lock-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+.lock-icon {
+  width: 52px; height: 52px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 22px;
+}
+.lock-card h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.lock-card p {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+}
+.lock-card input {
+  text-align: center;
+  letter-spacing: 0.3em;
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+/* ─── Admin section ─────────────────────────────────── */
+.admin-unlocked { display: none; }
+.admin-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 32px 0 14px;
+}
+.admin-section-title:first-child { margin-top: 0; }
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.meta-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+.meta-item-label { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 4px; }
+.meta-item-val { font-size: 0.95rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 28px 0;
+}
+
+/* ─── Pagination hint ───────────────────────────────── */
+.table-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* ─── Empty state ───────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 64px 24px;
+  color: var(--text-dim);
+}
+.empty-state h3 { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+.empty-state p { font-size: 0.82rem; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header class="app-header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="3" fill="#0d0d0d"/>
+          <circle cx="8" cy="8" r="6.5" stroke="#0d0d0d" stroke-width="1.5"/>
+          <line x1="8" y1="1" x2="8" y2="4" stroke="#0d0d0d" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="8" y1="12" x2="8" y2="15" stroke="#0d0d0d" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="1" y1="8" x2="4" y2="8" stroke="#0d0d0d" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="12" y1="8" x2="15" y2="8" stroke="#0d0d0d" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      가맹점 반경 검색
+    </div>
+    <div style="font-size:0.75rem;color:var(--text-dim);">INTERNAL TOOL</div>
+  </div>
+</header>
+
+<!-- ── Tab nav ── -->
+<nav class="tab-nav">
+  <div class="tab-nav-inner">
+    <button class="tab-btn active" onclick="switchTab('search')">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/>
+        <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      검색
+    </button>
+    <button class="tab-btn" id="admin-tab-btn" onclick="switchTab('admin')">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+        <path d="M4 6V4.5a3 3 0 016 0V6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      관리자
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════ TAB 1: 검색 ══════════════════════ -->
+<main class="main">
+<div class="tab-panel active" id="panel-search">
+  <div class="section-grid">
+
+    <!-- 왼쪽: 검색 입력 -->
+    <div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-title">검색 조건</span></div>
+        <div class="card-body">
+
+          <div class="field">
+            <label>기준 좌표</label>
+            <input type="text" id="s-coord" placeholder="위도,경도 예) 37.4004,127.1102">
+            <div class="field-hint">위도와 경도를 쉼표로 구분하여 입력하세요</div>
+          </div>
+
+          <div class="field">
+            <label>반경</label>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <input type="number" id="s-radius" value="1.0" min="0.01" step="0.1" style="flex:1;">
+              <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">km</span>
+            </div>
+          </div>
+
+          <div id="search-alert" class="alert alert-error"></div>
+
+          <div style="margin-top:6px;">
+            <button class="btn btn-white btn-full btn-lg" onclick="runSearch()">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              검색 실행
+            </button>
+          </div>
+
+          <!-- 데이터 상태 -->
+          <div style="margin-top:18px;">
+            <div class="data-status" id="data-status-bar">
+              <span class="data-status-indicator" id="data-indicator"></span>
+              <span class="data-status-text" id="data-status-text">데이터 없음 — 관리자 탭에서 업로드 필요</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 오른쪽: 결과 -->
+    <div>
+      <!-- 초기 empty state -->
+      <div id="empty-state" class="empty-state">
+        <div style="width:48px;height:48px;background:var(--surface);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="9" cy="9" r="6" stroke="var(--text-dim)" stroke-width="1.5"/>
+            <line x1="13" y1="13" x2="18" y2="18" stroke="var(--text-dim)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>검색 결과가 없습니다</h3>
+        <p>좌표와 반경을 입력한 뒤 검색을 실행하세요</p>
+      </div>
+
+      <!-- 로딩 -->
+      <div class="loading-overlay" id="loading">
+        <span class="spinner"></span>거리 계산 중...
+      </div>
+
+      <!-- 결과 -->
+      <div id="result-section" style="display:none;">
+        <div class="result-bar">
+          <div class="result-bar-left">
+            <h2 id="result-title">검색 결과</h2>
+            <p id="result-subtitle"></p>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-ghost" onclick="downloadCSV()">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <path d="M6.5 1v8M3.5 6.5l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 10.5h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+              CSV
+            </button>
+            <button class="btn btn-outline" onclick="downloadXLSX()">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <path d="M6.5 1v8M3.5 6.5l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 10.5h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+              Excel
+            </button>
+          </div>
+        </div>
+
+        <div class="stat-row" id="stat-row"></div>
+
+        <div class="table-outer">
+          <div class="table-scroll">
+            <table id="result-table">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>가맹점명</th>
+                  <th>가맹점코드</th>
+                  <th>주소</th>
+                  <th>거리(km)</th>
+                </tr>
+              </thead>
+              <tbody id="result-body"></tbody>
+            </table>
+          </div>
+          <div class="table-footer" id="table-footer"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════ TAB 2: 관리자 ══════════════════════ -->
+<div class="tab-panel" id="panel-admin">
+
+  <!-- 잠금 화면 -->
+  <div class="lock-screen" id="lock-screen">
+    <div class="lock-card">
+      <div class="lock-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <rect x="3" y="10" width="16" height="11" rx="2.5" stroke="var(--text-muted)" stroke-width="1.5"/>
+          <path d="M7 10V7a4 4 0 018 0v3" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="11" cy="15.5" r="1.5" fill="var(--text-muted)"/>
+        </svg>
+      </div>
+      <h2>관리자 인증</h2>
+      <p>이 영역은 관리자 전용입니다.<br>보안 코드를 입력하세요.</p>
+      <input type="password" id="lock-input" placeholder="· · · ·" maxlength="20"
+        onkeydown="if(event.key==='Enter')verifyCode()">
+      <div id="lock-alert" class="alert alert-error"></div>
+      <button class="btn btn-white btn-full" style="margin-top:14px;" onclick="verifyCode()">
+        확인
+      </button>
+    </div>
+  </div>
+
+  <!-- 잠금 해제 후 -->
+  <div class="admin-unlocked" id="admin-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+      <div>
+        <h2 style="font-size:1.1rem;font-weight:700;">데이터 관리</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-top:3px;">가맹점 CSV 파일을 업로드하여 검색 데이터를 최신화합니다</p>
+      </div>
+      <button class="btn btn-ghost" onclick="lockAdmin()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <path d="M9 1.5H11.5V12H1.5V1.5H4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M6.5 8V5M5 3h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        잠금
+      </button>
+    </div>
+
+    <!-- 현재 데이터 상태 -->
+    <div class="admin-section-title">현재 데이터 상태</div>
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-item-label">총 가맹점 수</div>
+        <div class="meta-item-val" id="admin-count">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-item-label">마지막 업로드</div>
+        <div class="meta-item-val" id="admin-updated">—</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- CSV 업로드 -->
+    <div class="admin-section-title">CSV 업로드</div>
+
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <input type="file" id="file-input" accept=".csv">
+      <div class="drop-zone-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 13V4M6 8l4-4 4 4" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3 16h14" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p><strong>클릭</strong>하거나 파일을 드래그하여 업로드</p>
+      <small>가맹점코드, 위도, 경도, 가맹점명, 주소 컬럼 포함 CSV · UTF-8</small>
+    </div>
+
+    <div id="upload-alert" class="alert" style="margin-top:14px;"></div>
+
+    <!-- 컬럼 가이드 -->
+    <div style="margin-top:24px;">
+      <div class="admin-section-title">CSV 컬럼 사양</div>
+      <div class="table-outer">
+        <table>
+          <thead>
+            <tr>
+              <th>컬럼명</th>
+              <th>타입</th>
+              <th>예시</th>
+              <th>비고</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>가맹점코드</td><td style="color:var(--text-dim);">String</td><td class="cell-code">UKSL4T</td><td style="color:var(--text-dim);font-size:0.78rem;">고유 키</td></tr>
+            <tr><td>위도</td><td style="color:var(--text-dim);">Float</td><td class="cell-code">37.4924409</td><td style="color:var(--text-dim);font-size:0.78rem;">WGS84</td></tr>
+            <tr><td>경도</td><td style="color:var(--text-dim);">Float</td><td class="cell-code">127.0309581</td><td style="color:var(--text-dim);font-size:0.78rem;">WGS84</td></tr>
+            <tr><td>가맹점명</td><td style="color:var(--text-dim);">String</td><td class="cell-code">브릭샌드(강남역점)</td><td style="color:var(--text-dim);font-size:0.78rem;"></td></tr>
+            <tr><td>주소</td><td style="color:var(--text-dim);">String</td><td class="cell-code">06232) 서울특별시...</td><td style="color:var(--text-dim);font-size:0.78rem;"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<script>
+/* ══ State ══════════════════════════════════════════════ */
+let merchants = [];
+let searchResults = [];
+let adminUnlocked = false;
+
+/* ══ Tab switch ═════════════════════════════════════════ */
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+  if (name === 'admin') {
+    document.getElementById('admin-tab-btn').classList.add('active');
+    document.getElementById('panel-admin').classList.add('active');
+  } else {
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    document.getElementById('panel-search').classList.add('active');
+  }
+}
+
+/* ══ Admin lock ═════════════════════════════════════════ */
+const ADMIN_CODE = '1234';
+
+function verifyCode() {
+  const val = document.getElementById('lock-input').value;
+  const alertEl = document.getElementById('lock-alert');
+  if (val === ADMIN_CODE) {
+    adminUnlocked = true;
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('admin-content').style.display = 'block';
+    updateAdminMeta();
+    alertEl.classList.remove('show');
+  } else {
+    alertEl.textContent = '보안 코드가 올바르지 않습니다.';
+    alertEl.classList.add('show');
+    document.getElementById('lock-input').value = '';
+    document.getElementById('lock-input').focus();
+  }
+}
+
+function lockAdmin() {
+  adminUnlocked = false;
+  document.getElementById('lock-screen').style.display = 'flex';
+  document.getElementById('admin-content').style.display = 'none';
+  document.getElementById('lock-input').value = '';
+  document.getElementById('lock-alert').classList.remove('show');
+}
+
+/* ══ CSV Upload ═════════════════════════════════════════ */
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) loadCSV(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadCSV(fileInput.files[0]); });
+
+function loadCSV(file) {
+  const alertEl = document.getElementById('upload-alert');
+  alertEl.className = 'alert alert-info show';
+  alertEl.textContent = '파일을 파싱하는 중...';
+
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete(res) {
+      const normalized = res.data.map(row => {
+        const n = {};
+        for (const k in row) n[k.replace(/^﻿/, '').trim()] = row[k];
+        return n;
+      });
+
+      const required = ['가맹점코드', '위도', '경도', '가맹점명', '주소'];
+      const sample = normalized[0] || {};
+      const missing = required.filter(c => !(c in sample));
+      if (missing.length) {
+        alertEl.className = 'alert alert-error show';
+        alertEl.textContent = `필수 컬럼 누락: ${missing.join(', ')} | 실제 컬럼: ${Object.keys(sample).join(', ')}`;
+        return;
+      }
+
+      merchants = normalized.filter(r => {
+        const lat = parseFloat(r['위도']), lon = parseFloat(r['경도']);
+        return !isNaN(lat) && !isNaN(lon);
+      });
+
+      const ts = new Date().toLocaleString('ko-KR');
+      localStorage.setItem('merchants_ts', ts);
+      updateAdminMeta();
+      updateDataStatus();
+
+      alertEl.className = 'alert alert-success show';
+      alertEl.textContent = `✔ ${file.name} 업로드 완료 — ${merchants.length.toLocaleString()}개 가맹점 로드됨`;
+    },
+    error(err) {
+      alertEl.className = 'alert alert-error show';
+      alertEl.textContent = 'CSV 파싱 오류: ' + err.message;
+    }
+  });
+}
+
+function updateAdminMeta() {
+  document.getElementById('admin-count').textContent =
+    merchants.length ? merchants.length.toLocaleString() + '개' : '—';
+  const ts = localStorage.getItem('merchants_ts');
+  document.getElementById('admin-updated').textContent = ts || '—';
+}
+
+function updateDataStatus() {
+  const ind = document.getElementById('data-indicator');
+  const txt = document.getElementById('data-status-text');
+  if (merchants.length) {
+    ind.className = 'data-status-indicator ok';
+    const ts = localStorage.getItem('merchants_ts') || '';
+    txt.innerHTML = `<strong>${merchants.length.toLocaleString()}개</strong> 가맹점 데이터 로드됨${ts ? ' · ' + ts : ''}`;
+  } else {
+    ind.className = 'data-status-indicator';
+    txt.textContent = '데이터 없음 — 관리자 탭에서 업로드 필요';
+  }
+}
+
+/* ══ Haversine ══════════════════════════════════════════ */
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371.0088;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+/* ══ Search ═════════════════════════════════════════════ */
+function runSearch() {
+  const alertEl = document.getElementById('search-alert');
+  alertEl.classList.remove('show');
+
+  if (!merchants.length) {
+    showSearchAlert('데이터가 없습니다. 관리자 탭에서 CSV를 업로드하세요.');
+    return;
+  }
+
+  const radius = parseFloat(document.getElementById('s-radius').value);
+  if (isNaN(radius) || radius <= 0) { showSearchAlert('반경 값이 올바르지 않습니다.'); return; }
+
+  const rawCoord = document.getElementById('s-coord').value.trim();
+  if (!rawCoord) { showSearchAlert('기준 좌표를 입력하세요.'); return; }
+
+  const parts = rawCoord.split(',');
+  if (parts.length < 2) { showSearchAlert('형식 오류: 위도,경도 형식으로 입력하세요.'); return; }
+  const lat = parseFloat(parts[0].trim());
+  const lon = parseFloat(parts[1].trim());
+  if (isNaN(lat) || isNaN(lon)) { showSearchAlert('숫자가 아닌 좌표입니다.'); return; }
+  if (lat < -90 || lat > 90) { showSearchAlert(`위도 범위 오류 (-90~90): ${lat}`); return; }
+  if (lon < -180 || lon > 180) { showSearchAlert(`경도 범위 오류 (-180~180): ${lon}`); return; }
+
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('result-section').style.display = 'none';
+
+  setTimeout(() => {
+    const matched = [];
+    for (const m of merchants) {
+      const lat2 = parseFloat(m['위도']), lon2 = parseFloat(m['경도']);
+      const d = haversine(lat, lon, lat2, lon2);
+      if (d <= radius) {
+        matched.push({
+          가맹점명: m['가맹점명'] || '',
+          가맹점코드: m['가맹점코드'] || '',
+          주소: m['주소'] || '',
+          dist: d
+        });
+      }
+    }
+    matched.sort((a, b) => a.dist - b.dist);
+    searchResults = matched;
+    renderResults(lat, lon, radius, matched);
+    document.getElementById('loading').classList.remove('show');
+  }, 30);
+}
+
+function showSearchAlert(msg) {
+  const el = document.getElementById('search-alert');
+  el.textContent = msg; el.classList.add('show');
+}
+
+/* ══ Render ═════════════════════════════════════════════ */
+function renderResults(lat, lon, radius, rows) {
+  const section = document.getElementById('result-section');
+  document.getElementById('result-title').textContent = '검색 결과';
+  document.getElementById('result-subtitle').textContent =
+    `기준좌표 ${lat},${lon} · 반경 ${radius}km · ${rows.length.toLocaleString()}건`;
+
+  // stat chips
+  const statRow = document.getElementById('stat-row');
+  statRow.innerHTML = `
+    <div class="stat-chip">
+      <span class="stat-chip-label">총 결과</span>
+      <span class="stat-chip-val">${rows.length.toLocaleString()}건</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-chip-label">최근접 거리</span>
+      <span class="stat-chip-val">${rows.length ? rows[0].dist.toFixed(3) + ' km' : '—'}</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-chip-label">최원거리</span>
+      <span class="stat-chip-val">${rows.length ? rows[rows.length-1].dist.toFixed(3) + ' km' : '—'}</span>
+    </div>
+  `;
+
+  const body = document.getElementById('result-body');
+  body.innerHTML = '';
+  rows.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="cell-no">${i+1}</td>
+      <td style="font-weight:600;">${esc(r.가맹점명)}</td>
+      <td class="cell-code">${esc(r.가맹점코드)}</td>
+      <td class="cell-addr">${esc(r.주소)}</td>
+      <td class="cell-dist">${r.dist.toFixed(3)}</td>
+    `;
+    body.appendChild(tr);
+  });
+
+  const footer = document.getElementById('table-footer');
+  footer.textContent = `${rows.length.toLocaleString()}건 표시 중`;
+
+  section.style.display = 'block';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ══ Download ═══════════════════════════════════════════ */
+function ts() {
+  const d = new Date();
+  return d.getFullYear() +
+    String(d.getMonth()+1).padStart(2,'0') +
+    String(d.getDate()).padStart(2,'0') + '_' +
+    String(d.getHours()).padStart(2,'0') +
+    String(d.getMinutes()).padStart(2,'0') +
+    String(d.getSeconds()).padStart(2,'0');
+}
+
+function buildExportRows() {
+  return searchResults.map((r, i) => ({
+    'No': i+1,
+    '가맹점명': r.가맹점명,
+    '가맹점코드': r.가맹점코드,
+    '주소': r.주소,
+    '거리(km)': parseFloat(r.dist.toFixed(3))
+  }));
+}
+
+function downloadCSV() {
+  if (!searchResults.length) return;
+  const csv = Papa.unparse(buildExportRows(), { header: true });
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `가맹점_반경검색_${ts()}.csv`;
+  a.click();
+}
+
+function downloadXLSX() {
+  if (!searchResults.length) return;
+  const ws = XLSX.utils.json_to_sheet(buildExportRows());
+  ws['!cols'] = [{wch:6},{wch:28},{wch:12},{wch:50},{wch:10}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '검색결과');
+  XLSX.writeFile(wb, `가맹점_반경검색_${ts()}.xlsx`);
+}
+
+/* ══ Init ═══════════════════════════════════════════════ */
+updateDataStatus();
+</script>
+</body>
+</html>
