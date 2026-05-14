@@ -18,7 +18,7 @@
   --text: #111111;
   --text-muted: #666666;
   --text-dim: #aaaaaa;
-  --accent: #111111;
+  --accent: #242424;
   --accent-text: #ffffff;
   --radius: 12px;
   --radius-sm: 7px;
@@ -73,8 +73,26 @@ body {
   font-size: 0.7rem; font-weight: 700; color: var(--text-muted);
   letter-spacing: 0.06em; text-transform: uppercase;
 }
+.sf-mode   { flex-shrink: 0; }
 .sf-coord  { flex: 1; min-width: 220px; }
-.sf-radius { width: 108px; }
+.sf-radius { width: 120px; }
+
+/* 모드 토글 */
+.mode-toggle { display: flex; }
+.mode-btn {
+  padding: 9px 14px; border: 1px solid var(--border-dark);
+  background: var(--surface2); color: var(--text-muted);
+  font-size: 0.82rem; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: background var(--tr), color var(--tr), border-color var(--tr);
+  white-space: nowrap;
+}
+.mode-btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.mode-btn:last-child  { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-left: -1px; }
+.mode-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); z-index: 1; }
+
+/* 매장명 모드에서 거리 컬럼 숨김 */
+table.hide-dist #th-dist,
+table.hide-dist .cell-dist { display: none; }
 
 input[type="text"],
 input[type="number"] {
@@ -95,7 +113,7 @@ input[type="number"]:invalid { box-shadow: none; border-color: var(--border); }
 /* km 내부 포함 input */
 .radius-input-wrap { position: relative; display: flex; align-items: center; gap: 0; }
 .radius-input-wrap input {
-  padding-right: 36px; padding-left: 34px;
+  padding-right: 52px; padding-left: 26px;
   -moz-appearance: textfield; text-align: center;
 }
 .radius-input-wrap input::-webkit-outer-spin-button,
@@ -107,14 +125,14 @@ input[type="number"]:invalid { box-shadow: none; border-color: var(--border); }
 }
 .radius-step-btn {
   position: absolute; top: 50%; transform: translateY(-50%);
-  width: 26px; height: 26px; border: none; background: none;
-  color: var(--text-muted); font-size: 1.1rem; font-weight: 700;
+  width: 20px; height: 20px; border: none; background: none;
+  color: var(--text-muted); font-size: 0.95rem; font-weight: 700;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  border-radius: 4px; line-height: 1; user-select: none;
+  border-radius: 3px; line-height: 1; user-select: none;
   transition: background var(--tr), color var(--tr);
 }
 .radius-step-btn:hover { background: var(--border); color: var(--text); }
-.radius-step-btn.minus { left: 4px; }
+.radius-step-btn.minus { left: 3px; }
 .radius-step-btn.plus  { right: 30px; }
 
 .alert-inline { font-size: 0.79rem; color: #b91c1c; display: none; align-self: flex-end; padding-bottom: 10px; }
@@ -284,20 +302,20 @@ tbody td { padding: 11px 16px; vertical-align: middle; }
 <header class="header">
   <div class="header-inner">
     <div class="logo">
-      <div class="logo-mark">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-          <circle cx="6.5" cy="6.5" r="2.2" fill="white"/>
-          <circle cx="6.5" cy="6.5" r="5" stroke="white" stroke-width="1.2"/>
-          <line x1="6.5" y1="1"   x2="6.5" y2="3.2"  stroke="white" stroke-width="1.2" stroke-linecap="round"/>
-          <line x1="6.5" y1="9.8" x2="6.5" y2="12"   stroke="white" stroke-width="1.2" stroke-linecap="round"/>
-          <line x1="1"   y1="6.5" x2="3.2" y2="6.5"  stroke="white" stroke-width="1.2" stroke-linecap="round"/>
-          <line x1="9.8" y1="6.5" x2="12"  y2="6.5"  stroke="white" stroke-width="1.2" stroke-linecap="round"/>
-        </svg>
-      </div>
+      <svg height="20" viewBox="0 0 197.44 42.66" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+        <style>.pc1{fill-rule:evenodd}.pc1,.pc2{fill:#f23}</style>
+        <g>
+          <path class="pc2" d="M191.2,5.96c-3.88-3.71-9.17-5.9-15.11-5.9s-11.23,2.19-15.11,5.9c-4,3.83-6.24,9.29-6.24,15.4s2.24,11.57,6.24,15.4c3.88,3.71,9.17,5.9,15.11,5.9s11.23-2.19,15.11-5.9c4-3.83,6.24-9.29,6.24-15.4s-2.24-11.57-6.24-15.4ZM184.43,29.45c-2.04,2.2-4.83,3.49-8.35,3.49s-6.3-1.29-8.35-3.49c-1.88-2.1-2.96-4.79-2.96-8.09s1.03-5.99,2.91-8.09c2.04-2.2,4.89-3.49,8.4-3.49s6.3,1.29,8.35,3.49c1.88,2.1,2.96,4.79,2.96,8.09s-1.08,5.99-2.96,8.09Z"/>
+          <path class="pc1" d="M144.57,28.06l-.19.24c-1.36,1.68-2.87,2.86-4.64,3.62h0s0,0,0,0c-1.39.64-3.12,1.02-4.96,1.02-3.59,0-6.76-1.19-8.85-3.44h0c-1.93-2.04-3.01-4.95-3.01-8.2,0-3.78,1.51-6.9,4.04-9,2.05-1.67,4.41-2.64,7.82-2.64,1.62,0,3.19.32,4.59.86,1.66.64,3.07,1.67,4.48,3.08l.21.21,7.33-6.15-.2-.24c-2.08-2.58-4.55-4.44-6.87-5.52h0c-2.71-1.24-6.02-1.91-9.77-1.91-5.77,0-10.89,1.91-14.72,5.23h0c-4.39,3.89-6.97,9.51-6.97,16.08,0,5.5,1.85,10.39,5.06,14.11h0c3.94,4.45,9.78,7.2,16.63,7.2,4.36,0,7.85-.84,10.73-2.48,2.6-1.47,4.68-3.56,6.53-6.24l.17-.25-7.41-5.57Z"/>
+        </g>
+        <polygon class="pc1" points="101.15 1.05 92.53 18.06 83.96 1.05 72.41 1.05 87.5 28.56 87.5 41.55 97.56 41.55 97.56 28.56 112.65 1.05 101.15 1.05"/>
+        <path class="pc2" d="M61.38,1.05h-13.34l-15.08,40.5h10.26l2.88-7.81h17.38l2.93,7.81h10.54L61.38,1.05ZM54.74,10.37l5.35,14.26h-10.6l5.25-14.26Z"/>
+        <path class="pc2" d="M31.02,6.32h0s0,0,0,0c-1.47-1.81-3.34-3.23-5.66-4.19-1.77-.74-4.48-1.08-6.55-1.08H0v40.5h10.05v-10.96h8.76c2.47,0,5.46-.56,7.61-1.58,2.9-1.36,5.05-3.75,6.36-6.58h0c.9-2.04,1.41-4.3,1.41-6.67,0-3.56-1.13-6.84-3.17-9.44ZM21.74,20.96c-.74.34-1.97.74-3.7.74h-8.53v-11.64h8.04c1.49,0,2.92.22,3.74.57,1.16.5,1.98,1.19,2.5,2.13.46.81.68,1.8.68,3.01,0,2.62-.89,4.32-2.73,5.19Z"/>
+      </svg>
       식권 사용처 검색
     </div>
     <div class="header-right">
-      <div class="header-meta">기준일: 2026년 5월 6일</div>
+      <div class="header-meta">데이터 기준일: 2026년 5월 6일</div>
     </div>
   </div>
 </header>
@@ -305,11 +323,18 @@ tbody td { padding: 11px 16px; vertical-align: middle; }
 <!-- Search bar -->
 <div class="search-bar">
   <div class="search-bar-inner">
-    <div class="sf sf-coord">
-      <label>주소 검색</label>
-      <input type="text" id="s-addr" placeholder="예) 서울특별시 강남구 테헤란로 152">
+    <div class="sf sf-mode">
+      <label>검색 유형</label>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="mode-addr" onclick="setMode('addr')">주소</button>
+        <button class="mode-btn" id="mode-name" onclick="setMode('name')">매장명</button>
+      </div>
     </div>
-    <div class="sf sf-radius">
+    <div class="sf sf-coord">
+      <label id="search-label">주소</label>
+      <input type="text" id="s-addr" placeholder="예) 서울특별시 구로구 디지털로26길 72 (구로동, NHN KCP)">
+    </div>
+    <div class="sf sf-radius" id="sf-radius">
       <label>반경</label>
       <div class="radius-input-wrap">
         <button class="radius-step-btn minus" type="button" onclick="stepRadius(-1)">−</button>
@@ -376,7 +401,7 @@ tbody td { padding: 11px 16px; vertical-align: middle; }
         </svg>
       </div>
       <h3>검색 결과가 없습니다</h3>
-      <p>좌표와 반경을 입력한 뒤 검색을 실행하세요</p>
+      <p id="empty-hint">주소를 입력한 뒤 검색을 실행하세요</p>
     </div>
 
     <!-- Loading -->
@@ -434,6 +459,24 @@ let currentPage    = 1;
 let sortCol        = 'dist';
 let sortDir        = 'asc';
 let filterText     = '';
+let searchMode     = 'addr';
+
+/* ── 모드 전환 ── */
+function setMode(mode) {
+  searchMode = mode;
+  document.getElementById('mode-addr').classList.toggle('active', mode === 'addr');
+  document.getElementById('mode-name').classList.toggle('active', mode === 'name');
+  document.getElementById('sf-radius').style.display = mode === 'addr' ? '' : 'none';
+  document.getElementById('search-label').textContent = mode === 'addr' ? '주소' : '매장명';
+  document.getElementById('s-addr').placeholder =
+    mode === 'addr' ? '예) 서울특별시 구로구 디지털로26길 72 (구로동, NHN KCP)' : '예) 스타벅스, 맥도날드';
+  document.getElementById('empty-hint').textContent =
+    mode === 'addr' ? '주소를 입력한 뒤 검색을 실행하세요' : '매장을 입력한 뒤 검색을 실행하세요';
+  document.getElementById('s-addr').value = '';
+  document.getElementById('coord-resolved').style.display = 'none';
+  document.getElementById('search-alert').classList.remove('show');
+  setView('empty');
+}
 
 /* ── 반경 소수점 1자리 제한 ── */
 function limitDecimal(el) {
@@ -492,11 +535,49 @@ function haversine(lat1, lon1, lat2, lon2) {
 
 /* ── 검색 ── */
 function runSearch() {
-  const alertEl = document.getElementById('search-alert');
-  alertEl.classList.remove('show');
-
+  document.getElementById('search-alert').classList.remove('show');
   if (!merchants.length) { showAlert('데이터 로드 중입니다. 잠시 후 다시 시도하세요.'); return; }
 
+  if (searchMode === 'name') {
+    runNameSearch();
+  } else {
+    runAddrSearch();
+  }
+}
+
+function runNameSearch() {
+  const query = document.getElementById('s-addr').value.trim();
+  if (!query) { showAlert('매장명을 입력하세요.'); return; }
+
+  document.getElementById('coord-resolved').style.display = 'none';
+  document.getElementById('filter-input').value = '';
+  filterText = '';
+  setView('loading');
+
+  setTimeout(() => {
+    const q = query.toLowerCase();
+    const matched = merchants
+      .filter(m => (m['가맹점명']||'').toLowerCase().includes(q))
+      .map(m => ({ 가맹점명: m['가맹점명']||'', 가맹점코드: m['가맹점코드']||'', 주소: m['주소']||'', distKm: null }));
+
+    matched.sort((a,b) => a.가맹점명.localeCompare(b.가맹점명, 'ko'));
+    searchResults = matched;
+
+    sortCol = 'name'; sortDir = 'asc';
+    document.querySelector('table').classList.add('hide-dist');
+    updateSortHeaders();
+
+    document.getElementById('stat-row').innerHTML = `
+      <div class="stat-chip"><span class="stat-chip-label">총 결과</span><span class="stat-chip-val">${matched.length.toLocaleString()}건</span></div>
+      <div class="stat-chip"><span class="stat-chip-label">검색어</span><span class="stat-chip-val">${esc(query)}</span></div>
+    `;
+
+    applyFilter();
+    setView('result');
+  }, 20);
+}
+
+function runAddrSearch() {
   const radius = parseFloat(parseFloat(document.getElementById('s-radius').value).toFixed(1));
   if (isNaN(radius) || radius < 0.1 || radius > 5) { showAlert('반경은 0.1~5km 사이로 입력하세요.'); return; }
 
@@ -505,8 +586,8 @@ function runSearch() {
 
   document.getElementById('search-btn').disabled = true;
   document.getElementById('coord-resolved').style.display = 'none';
+  document.querySelector('table').classList.remove('hide-dist');
 
-  // 카카오 지오코딩
   const geocoder = new kakao.maps.services.Geocoder();
   geocoder.addressSearch(addr, function(result, status) {
     if (status !== kakao.maps.services.Status.OK || !result.length) {
@@ -517,11 +598,9 @@ function runSearch() {
 
     const lat = parseFloat(result[0].y);
     const lon = parseFloat(result[0].x);
-    const resolvedAddr = result[0].address_name;
 
-    // 변환된 좌표 표시
     const coordEl = document.getElementById('coord-resolved');
-    coordEl.textContent = `📍 ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    coordEl.textContent = `위도: ${lat.toFixed(5)} / 경도: ${lon.toFixed(5)}`;
     coordEl.style.display = 'block';
 
     setView('loading');
@@ -595,7 +674,7 @@ function applySort() {
     let va, vb;
     if (sortCol === 'name') { va = a.가맹점명; vb = b.가맹점명; return sortDir === 'asc' ? va.localeCompare(vb, 'ko') : vb.localeCompare(va, 'ko'); }
     if (sortCol === 'no')   { va = searchResults.indexOf(a); vb = searchResults.indexOf(b); }
-    if (sortCol === 'dist') { va = a.distKm; vb = b.distKm; }
+    if (sortCol === 'dist') { va = a.distKm ?? Infinity; vb = b.distKm ?? Infinity; }
     return sortDir === 'asc' ? va - vb : vb - va;
   });
   displayResults = sorted;
@@ -642,14 +721,14 @@ function renderPage(page) {
   } else {
     slice.forEach((r, i) => {
       const origIdx = searchResults.indexOf(r);
-      const m  = Math.round(r.distKm * 1000);
+      const distCell = r.distKm !== null ? `${Math.round(r.distKm * 1000).toLocaleString()}m` : '—';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="cell-no">${origIdx + 1}</td>
         <td class="cell-name">${esc(r.가맹점명)}</td>
         <td class="cell-code">${esc(r.가맹점코드)}</td>
         <td class="cell-addr">${esc(r.주소)}</td>
-        <td class="cell-dist">${m.toLocaleString()}m</td>
+        <td class="cell-dist">${distCell}</td>
       `;
       body.appendChild(tr);
     });
