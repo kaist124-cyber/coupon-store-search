@@ -87,8 +87,9 @@ input::placeholder { color: var(--text-dim); }
 input:focus { border-color: #999; background: #fff; }
 input[type="number"]:invalid { box-shadow: none; border-color: var(--border); }
 .coord-resolved {
-  margin-top: 4px; font-size: 0.72rem; color: var(--text-muted);
-  font-family: monospace; padding: 0 2px;
+  font-size: 0.72rem; color: var(--text-muted);
+  font-family: monospace; white-space: nowrap; flex-shrink: 1;
+  overflow: hidden; text-overflow: ellipsis; max-width: 300px;
 }
 
 /* km 내부 포함 input */
@@ -307,7 +308,6 @@ tbody td { padding: 11px 16px; vertical-align: middle; }
     <div class="sf sf-coord">
       <label>주소 검색</label>
       <input type="text" id="s-addr" placeholder="예) 서울특별시 강남구 테헤란로 152">
-      <div class="coord-resolved" id="coord-resolved" style="display:none;"></div>
     </div>
     <div class="sf sf-radius">
       <label>반경</label>
@@ -342,6 +342,7 @@ tbody td { padding: 11px 16px; vertical-align: middle; }
         oninput="applyFilter()">
     </div>
     <div class="result-count" id="result-count"></div>
+    <div class="coord-resolved" id="coord-resolved" style="display:none;"></div>
     <div class="result-bar-spacer"></div>
     <div class="btn-group">
       <button class="btn btn-ghost" onclick="downloadCSV()">
@@ -520,7 +521,7 @@ function runSearch() {
 
     // 변환된 좌표 표시
     const coordEl = document.getElementById('coord-resolved');
-    coordEl.textContent = `📍 ${resolvedAddr}  (${lat.toFixed(6)}, ${lon.toFixed(6)})`;
+    coordEl.textContent = `📍 ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
     coordEl.style.display = 'block';
 
     setView('loading');
