@@ -6,6 +6,7 @@
 <title>식권 사용처 검색</title>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=21120b3345dc1922db7c9ab4b6bfe300&libraries=services"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -85,15 +86,35 @@ input[type="number"] {
 input::placeholder { color: var(--text-dim); }
 input:focus { border-color: #999; background: #fff; }
 input[type="number"]:invalid { box-shadow: none; border-color: var(--border); }
+.coord-resolved {
+  margin-top: 4px; font-size: 0.72rem; color: var(--text-muted);
+  font-family: monospace; padding: 0 2px;
+}
 
 /* km 내부 포함 input */
-.radius-input-wrap { position: relative; }
-.radius-input-wrap input { padding-right: 36px; }
+.radius-input-wrap { position: relative; display: flex; align-items: center; gap: 0; }
+.radius-input-wrap input {
+  padding-right: 36px; padding-left: 34px;
+  -moz-appearance: textfield; text-align: center;
+}
+.radius-input-wrap input::-webkit-outer-spin-button,
+.radius-input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .radius-input-wrap .km-label {
   position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
   font-size: 0.78rem; color: var(--text-muted); pointer-events: none;
   font-weight: 600;
 }
+.radius-step-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 26px; height: 26px; border: none; background: none;
+  color: var(--text-muted); font-size: 1.1rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; line-height: 1; user-select: none;
+  transition: background var(--tr), color var(--tr);
+}
+.radius-step-btn:hover { background: var(--border); color: var(--text); }
+.radius-step-btn.minus { left: 4px; }
+.radius-step-btn.plus  { right: 30px; }
 
 .alert-inline { font-size: 0.79rem; color: #b91c1c; display: none; align-self: flex-end; padding-bottom: 10px; }
 .alert-inline.show { display: block; }
@@ -275,10 +296,6 @@ tbody td { padding: 11px 16px; vertical-align: middle; }
       식권 사용처 검색
     </div>
     <div class="header-right">
-      <div class="data-pill">
-        <span class="dot loading" id="data-dot"></span>
-        <span id="data-pill-text">데이터 로드 중...</span>
-      </div>
       <div class="header-meta">기준일: 2026년 5월 6일</div>
     </div>
   </div>
@@ -288,15 +305,18 @@ tbody td { padding: 11px 16px; vertical-align: middle; }
 <div class="search-bar">
   <div class="search-bar-inner">
     <div class="sf sf-coord">
-      <label>기준 좌표</label>
-      <input type="text" id="s-coord" placeholder="위도,경도 예) 37.4004,127.1102">
+      <label>주소 검색</label>
+      <input type="text" id="s-addr" placeholder="예) 서울특별시 강남구 테헤란로 152">
+      <div class="coord-resolved" id="coord-resolved" style="display:none;"></div>
     </div>
     <div class="sf sf-radius">
       <label>반경</label>
       <div class="radius-input-wrap">
-        <input type="number" id="s-radius" value="1.0" min="0.1" max="50" step="1"
+        <button class="radius-step-btn minus" type="button" onclick="stepRadius(-1)">−</button>
+        <input type="number" id="s-radius" value="1" min="0.1" max="5" step="any"
           oninput="limitDecimal(this)">
         <span class="km-label">km</span>
+        <button class="radius-step-btn plus" type="button" onclick="stepRadius(1)">+</button>
       </div>
     </div>
     <button class="btn btn-black" id="search-btn" onclick="runSearch()" style="align-self:flex-end;">
@@ -425,6 +445,14 @@ function limitDecimal(el) {
   }
 }
 
+/* ── 반경 ±1km 버튼 ── */
+function stepRadius(dir) {
+  const el = document.getElementById('s-radius');
+  const cur = parseFloat(el.value) || 1;
+  const next = dir > 0 ? Math.floor(cur) + 1 : Math.ceil(cur) - 1;
+  el.value = Math.max(0.1, Math.min(5, next));
+}
+
 /* ── 데이터 로드 ── */
 function loadData() {
   fetch(DATA_URL)
@@ -447,8 +475,10 @@ function loadData() {
     .catch(() => setPill('err', '데이터 로드 실패'));
 }
 function setPill(state, html) {
-  document.getElementById('data-dot').className = 'dot ' + state;
-  document.getElementById('data-pill-text').innerHTML = html;
+  const dot  = document.getElementById('data-dot');
+  const text = document.getElementById('data-pill-text');
+  if (dot)  dot.className = 'dot ' + state;
+  if (text) text.innerHTML = html;
 }
 
 /* ── Haversine ── */
@@ -467,52 +497,64 @@ function runSearch() {
   if (!merchants.length) { showAlert('데이터 로드 중입니다. 잠시 후 다시 시도하세요.'); return; }
 
   const radius = parseFloat(parseFloat(document.getElementById('s-radius').value).toFixed(1));
-  if (isNaN(radius) || radius < 0.1) { showAlert('반경 값이 올바르지 않습니다.'); return; }
+  if (isNaN(radius) || radius < 0.1 || radius > 5) { showAlert('반경은 0.1~5km 사이로 입력하세요.'); return; }
 
-  const raw = document.getElementById('s-coord').value.trim();
-  if (!raw) { showAlert('기준 좌표를 입력하세요.'); return; }
+  const addr = document.getElementById('s-addr').value.trim();
+  if (!addr) { showAlert('주소를 입력하세요.'); return; }
 
-  const parts = raw.split(',');
-  if (parts.length < 2) { showAlert('형식 오류: 위도,경도'); return; }
-  const lat = parseFloat(parts[0].trim()), lon = parseFloat(parts[1].trim());
-  if (isNaN(lat)||isNaN(lon))  { showAlert('숫자가 아닌 좌표입니다.'); return; }
-  if (lat<-90||lat>90)         { showAlert(`위도 범위 오류: ${lat}`); return; }
-  if (lon<-180||lon>180)       { showAlert(`경도 범위 오류: ${lon}`); return; }
-
-  setView('loading');
   document.getElementById('search-btn').disabled = true;
-  document.getElementById('filter-input').value = '';
-  filterText = '';
+  document.getElementById('coord-resolved').style.display = 'none';
 
-  setTimeout(() => {
-    const matched = [];
-    for (const m of merchants) {
-      const d = haversine(lat, lon, parseFloat(m['위도']), parseFloat(m['경도']));
-      if (d <= radius) matched.push({
-        가맹점명: m['가맹점명']||'', 가맹점코드: m['가맹점코드']||'', 주소: m['주소']||'', distKm: d
-      });
+  // 카카오 지오코딩
+  const geocoder = new kakao.maps.services.Geocoder();
+  geocoder.addressSearch(addr, function(result, status) {
+    if (status !== kakao.maps.services.Status.OK || !result.length) {
+      showAlert('주소를 찾을 수 없습니다. 더 구체적으로 입력해보세요.');
+      document.getElementById('search-btn').disabled = false;
+      return;
     }
-    matched.sort((a,b) => a.distKm - b.distKm);
-    searchResults = matched;
 
-    // 정렬 초기화: 거리 오름차순
-    sortCol = 'dist'; sortDir = 'asc';
-    updateSortHeaders();
+    const lat = parseFloat(result[0].y);
+    const lon = parseFloat(result[0].x);
+    const resolvedAddr = result[0].address_name;
 
-    // stat chips
-    const total = matched.length;
-    const nearM = total ? Math.round(matched[0].distKm * 1000) : null;
-    const farM  = total ? Math.round(matched[total-1].distKm * 1000) : null;
-    document.getElementById('stat-row').innerHTML = `
-      <div class="stat-chip"><span class="stat-chip-label">총 결과</span><span class="stat-chip-val">${total.toLocaleString()}건</span></div>
-      <div class="stat-chip"><span class="stat-chip-label">최근접</span><span class="stat-chip-val">${nearM!==null ? nearM.toLocaleString()+'m' : '—'}</span></div>
-      <div class="stat-chip"><span class="stat-chip-label">최원거리</span><span class="stat-chip-val">${farM!==null ? farM.toLocaleString()+'m' : '—'}</span></div>
-    `;
+    // 변환된 좌표 표시
+    const coordEl = document.getElementById('coord-resolved');
+    coordEl.textContent = `📍 ${resolvedAddr}  (${lat.toFixed(6)}, ${lon.toFixed(6)})`;
+    coordEl.style.display = 'block';
 
-    applyFilter();
-    setView('result');
-    document.getElementById('search-btn').disabled = false;
-  }, 30);
+    setView('loading');
+    document.getElementById('filter-input').value = '';
+    filterText = '';
+
+    setTimeout(() => {
+      const matched = [];
+      for (const m of merchants) {
+        const d = haversine(lat, lon, parseFloat(m['위도']), parseFloat(m['경도']));
+        if (d <= radius) matched.push({
+          가맹점명: m['가맹점명']||'', 가맹점코드: m['가맹점코드']||'', 주소: m['주소']||'', distKm: d
+        });
+      }
+      matched.sort((a,b) => a.distKm - b.distKm);
+      searchResults = matched;
+
+      sortCol = 'dist'; sortDir = 'asc';
+      updateSortHeaders();
+
+      const total = matched.length;
+      const nearM = total ? Math.round(matched[0].distKm * 1000) : null;
+      const farM  = total ? Math.round(matched[total-1].distKm * 1000) : null;
+      document.getElementById('stat-row').innerHTML = `
+        <div class="stat-chip"><span class="stat-chip-label">총 결과</span><span class="stat-chip-val">${total.toLocaleString()}건</span></div>
+        <div class="stat-chip"><span class="stat-chip-label">최근접</span><span class="stat-chip-val">${nearM!==null ? nearM.toLocaleString()+'m' : '—'}</span></div>
+        <div class="stat-chip"><span class="stat-chip-label">최원거리</span><span class="stat-chip-val">${farM!==null ? farM.toLocaleString()+'m' : '—'}</span></div>
+      `;
+
+      applyFilter();
+      setView('result');
+      document.getElementById('search-btn').disabled = false;
+    }, 30);
+  });
 }
 
 function showAlert(msg) {
@@ -698,7 +740,7 @@ function downloadXLSX() {
 }
 
 /* ── 엔터 ── */
-['s-coord','s-radius'].forEach(id =>
+['s-addr','s-radius'].forEach(id =>
   document.getElementById(id).addEventListener('keydown', e => { if (e.key==='Enter') runSearch(); })
 );
 
