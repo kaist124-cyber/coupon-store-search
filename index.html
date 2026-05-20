@@ -257,8 +257,9 @@ tbody tr:hover { background: #f9f9f9; }
 tbody td { padding: 12px 16px; vertical-align: middle; }
 .cell-no   { color: var(--text-dim); font-variant-numeric: tabular-nums; width: 48px; text-align: right; font-size: 0.76rem; }
 .cell-name { font-weight: 600; min-width: 140px; }
+.cell-cat  { font-size: 0.76rem; color: var(--text-muted); white-space: nowrap; min-width: 90px; }
 .cell-code { font-family: monospace; font-size: 0.77rem; color: var(--text-muted); white-space: nowrap; }
-.cell-addr { font-size: 0.76rem; color: var(--text-muted); max-width: 280px; word-break: break-all; }
+.cell-addr { font-size: 0.76rem; color: var(--text-muted); min-width: 200px; max-width: 280px; word-break: break-all; }
 .cell-dist { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
 
 /* ── Pagination ── */
@@ -447,6 +448,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
               <th id="th-name" class="sortable" onclick="sortBy('name')">
                 가맹점명 <span class="sort-icon"><span class="asc-tri"></span><span class="desc-tri"></span></span>
               </th>
+              <th>카테고리</th>
               <th>가맹점코드</th>
               <th>주소</th>
               <th id="th-dist" class="sortable sorted asc" onclick="sortBy('dist')">
@@ -469,7 +471,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
 </div>
 
 <script>
-const DATA_URL  = 'https://raw.githubusercontent.com/kaist124-cyber/coupon-store-search/main/data.csv?v=20260520';
+const DATA_URL  = 'https://raw.githubusercontent.com/kaist124-cyber/coupon-store-search/main/data.csv?v=20260520b';
 const PAGE_SIZE = 50;
 
 let merchants      = [];
@@ -578,7 +580,7 @@ function runNameSearch() {
     const q = query.toLowerCase();
     const matched = merchants
       .filter(m => (m['가맹점명']||'').toLowerCase().includes(q))
-      .map(m => ({ 가맹점명: m['가맹점명']||'', 가맹점코드: m['가맹점키']||'', 주소: m['가맹점 주소']||'', 프랜차이즈: m['프랜차이즈']||'', distKm: null }));
+      .map(m => ({ 가맹점명: m['가맹점명']||'', 카테고리: m['카테고리']||'', 가맹점코드: m['가맹점키']||'', 주소: m['가맹점 주소']||'', 프랜차이즈: m['프랜차이즈']||'', distKm: null }));
 
     matched.sort((a,b) => a.가맹점명.localeCompare(b.가맹점명, 'ko'));
     searchResults = matched;
@@ -632,7 +634,7 @@ function runAddrSearch() {
       for (const m of merchants) {
         const d = haversine(lat, lon, parseFloat(m['위도']), parseFloat(m['경도']));
         if (d <= radius) matched.push({
-          가맹점명: m['가맹점명']||'', 가맹점코드: m['가맹점키']||'', 주소: m['가맹점 주소']||'', 프랜차이즈: m['프랜차이즈']||'', distKm: d
+          가맹점명: m['가맹점명']||'', 카테고리: m['카테고리']||'', 가맹점코드: m['가맹점키']||'', 주소: m['가맹점 주소']||'', 프랜차이즈: m['프랜차이즈']||'', distKm: d
         });
       }
       matched.sort((a,b) => a.distKm - b.distKm);
@@ -748,6 +750,7 @@ function renderPage(page) {
       tr.innerHTML = `
         <td class="cell-no">${origIdx + 1}</td>
         <td class="cell-name">${esc(r.가맹점명)}</td>
+        <td class="cell-cat">${esc(r.카테고리)}</td>
         <td class="cell-code">${esc(r.가맹점코드)}</td>
         <td class="cell-addr">${esc(r.주소)}</td>
         <td class="cell-dist">${distCell}</td>
@@ -822,7 +825,7 @@ function getTs() {
 function buildRows() {
   return displayResults.map((r,i) => ({
     'No': searchResults.indexOf(r)+1, '가맹점명': r.가맹점명,
-    '가맹점코드': r.가맹점코드, '주소': r.주소,
+    '카테고리': r.카테고리, '가맹점코드': r.가맹점코드, '주소': r.주소,
     '거리(m)': Math.round(r.distKm * 1000)
   }));
 }
