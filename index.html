@@ -1180,8 +1180,8 @@ function getTs() {
     '_' + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0') + String(d.getSeconds()).padStart(2,'0');
 }
 function buildRows() {
-  return displayResults.map(r => ({
-    'No': searchResults.indexOf(r)+1, '가맹점명': r.가맹점명,
+  return displayResults.map((r, idx) => ({
+    'No': idx + 1, '가맹점명': r.가맹점명,
     '카테고리': r.카테고리, '가맹점코드': r.가맹점코드, '주소': r.주소,
     '거리(m)': r.distKm !== null ? Math.round(r.distKm * 1000) : ''
   }));
