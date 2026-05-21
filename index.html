@@ -437,11 +437,16 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   }
   .list-pane.collapsed { width: 100% !important; height: auto; }
 
-  /* 테이블 스크롤 해제 → 전체 펼치기 */
+  /* 테이블: 세로 전체 펼치기 + 가로 스크롤 허용 */
   .table-scroll {
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: visible;
     height: auto;
     flex: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-scroll table {
+    min-width: 560px;
   }
 
   /* 지도: 아래, 고정 높이 */
@@ -460,7 +465,19 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   .page-btn { min-width: 30px; height: 30px; }
 
   /* 헤더 */
-  .header-meta { font-size: 0.65rem; }
+  .header-inner { padding: 0 14px; height: 46px; }
+  .logo { gap: 8px; }
+  .logo svg { height: 16px; }
+  .logo-sep { height: 14px; }
+  .logo-service { font-size: 0.7rem; }
+  .header-meta { font-size: 0.62rem; }
+
+  /* 리스트바 컨트롤 줄바꿈 허용 */
+  .list-bar-controls { flex-wrap: wrap; gap: 6px; }
+
+  /* 엑셀 버튼: 아이콘만 표시, 크기 축소 */
+  .btn-excel { width: auto !important; padding: 5px 8px; }
+  .btn-excel span { display: none; }
 }
 </style>
 </head>
