@@ -4,35 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>식권 사용처 검색</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=21120b3345dc1922db7c9ab4b6bfe300&libraries=services"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #f5f5f5;
+  --bg: #F3F4F7;
   --surface: #ffffff;
-  --surface2: #fafafa;
-  --border: #e8e8e8;
-  --border-dark: #cccccc;
-  --text: #222222;
-  --text-muted: #666666;
-  --text-dim: #aaaaaa;
-  --accent: #333333;
+  --surface2: #F8F9FB;
+  --border: #E8EAED;
+  --border-dark: #D1D5DB;
+  --text: #111111;
+  --text-muted: #6B7280;
+  --text-dim: #A0A4AE;
+  --accent: #111111;
   --accent-text: #ffffff;
-  --radius: 4px;
-  --radius-sm: 4px;
-  --shadow: 0 1px 4px rgba(0,0,0,0.06);
+  --red: #FF1B2C;
+  --red-dark: #D90010;
+  --red-bg: #FFF0F1;
+  --radius: 10px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --tr: 0.15s ease;
 }
-html, body { height: 100%; }
+html, body { height: 100%; overflow: hidden; }
 body {
-  font-family: 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  display: flex; flex-direction: column;
-  min-height: 100vh;
-  line-height: 1.6;
+  font-family: 'Noto Sans KR', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg); color: var(--text);
+  display: flex; flex-direction: column; line-height: 1.6;
 }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -42,263 +45,288 @@ body {
 /* ── Header ── */
 .header {
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  position: relative;
+  box-shadow: 0 1px 0 var(--border), 0 2px 8px rgba(0,0,0,0.04);
 }
-.header-inner {
-  max-width: 1160px; margin: 0 auto; padding: 0 28px;
-  height: 56px; display: flex; align-items: center; justify-content: space-between;
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--border);
 }
-.logo { display: flex; align-items: center; gap: 10px; font-size: 0.92rem; font-weight: 700; }
-.logo-mark {
-  width: 26px; height: 26px; background: var(--accent); border-radius: 6px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+.header-inner { padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+.logo { display: flex; align-items: center; gap: 14px; }
+.logo-brand { display: flex; align-items: baseline; gap: 4px; line-height: 1; }
+.logo-nhn {
+  font-family: 'Arial Black', 'Malgun Gothic', sans-serif;
+  font-size: 0.78rem; font-weight: 900;
+  letter-spacing: 0.2em; color: #111;
+  text-transform: uppercase;
 }
-.header-right { display: flex; align-items: center; gap: 14px; }
-.data-pill {
-  display: flex; align-items: center; gap: 7px;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; color: var(--text-muted);
+.logo-payco-word {
+  font-family: 'Arial Black', 'Malgun Gothic', sans-serif;
+  font-size: 1.35rem; font-weight: 900;
+  letter-spacing: -0.02em; color: #111;
+  line-height: 1;
 }
-.dot { width: 6px; height: 6px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
-.dot.ok      { background: #22c55e; box-shadow: 0 0 4px rgba(34,197,94,0.5); }
-.dot.loading { background: #f59e0b; }
-.dot.err     { background: #ef4444; }
-.header-meta { font-size: 0.72rem; color: var(--text-dim); }
+.logo-sep {
+  width: 1px; height: 18px;
+  background: #D1D5DB;
+  align-self: center;
+}
+.logo-service {
+  font-size: 0.8rem; font-weight: 500;
+  color: var(--text-muted); letter-spacing: 0.01em;
+}
+.header-right { display: flex; align-items: center; gap: 12px; }
+.header-meta {
+  font-size: 0.7rem; color: var(--text-dim);
+  cursor: pointer; user-select: none;
+  transition: color var(--tr);
+  letter-spacing: 0.01em;
+}
+.header-meta:hover { color: var(--text-muted); }
 
 /* ── Search bar ── */
 .search-bar { background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.search-bar-inner {
-  max-width: 1160px; margin: 0 auto; padding: 16px 28px;
-  display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;
+.search-stat-row {
+  padding: 0 20px 10px;
+  display: flex; align-items: center; gap: 10px;
 }
-.sf { display: flex; flex-direction: column; gap: 5px; }
-.sf label {
-  font-size: 0.7rem; font-weight: 700; color: var(--text-muted);
-  letter-spacing: 0.06em; text-transform: uppercase;
-}
-.sf-mode   { flex-shrink: 0; }
-.sf-coord  { flex: 1; min-width: 220px; }
-.sf-radius { width: 120px; }
+.search-bar-inner { padding: 11px 20px 10px; display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.sf { display: flex; flex-direction: column; gap: 4px; }
+.sf label { font-size: 0.67rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; }
+.sf-mode { flex-shrink: 0; }
+.sf-coord { flex: 1; min-width: 220px; }
+.sf-radius { width: 128px; }
 
-/* 모드 토글 */
-.mode-toggle { display: flex; }
-.mode-btn {
-  padding: 8px 16px; border: 1px solid var(--border-dark);
-  background: var(--surface2); color: var(--text-muted);
-  font-size: 0.82rem; font-weight: 600; font-family: inherit;
-  cursor: pointer; transition: background var(--tr), color var(--tr), border-color var(--tr);
-  white-space: nowrap;
+/* 검색 유형 드롭다운 */
+.mode-select {
+  padding: 7px 30px 7px 11px;
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit; font-size: 0.72rem; font-weight: 600;
+  cursor: pointer; outline: none;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  transition: border-color var(--tr);
 }
-.mode-btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
-.mode-btn:last-child  { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-left: -1px; }
-.mode-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); z-index: 1; }
+.mode-select:focus { border-color: #888; }
 
-/* 매장명 모드에서 거리 컬럼 숨김 */
 table.hide-dist #th-dist,
 table.hide-dist .cell-dist { display: none; }
 
-input[type="text"],
-input[type="number"] {
+input[type="text"], input[type="number"] {
   background: var(--surface); border: 1px solid var(--border-dark);
   border-radius: var(--radius-sm); color: var(--text); font-family: inherit;
-  font-size: 0.88rem; padding: 8px 12px; outline: none; width: 100%;
-  transition: border-color var(--tr);
+  font-size: 0.72rem; padding: 7px 11px; outline: none; width: 100%;
+  transition: border-color var(--tr), box-shadow var(--tr);
 }
 input::placeholder { color: var(--text-dim); }
-input:focus { border-color: #999; }
+input:focus { border-color: #888; box-shadow: 0 0 0 3px rgba(0,0,0,0.06); }
 input[type="number"]:invalid { box-shadow: none; border-color: var(--border-dark); }
-.coord-resolved {
-  font-size: 0.72rem; color: var(--text-muted);
-  font-family: monospace; white-space: nowrap; flex-shrink: 1;
-  overflow: hidden; text-overflow: ellipsis; max-width: 300px;
-}
 
-/* km 내부 포함 input */
-.radius-input-wrap { position: relative; display: flex; align-items: center; gap: 0; }
+.radius-input-wrap {
+  display: flex; align-items: stretch;
+  border: 1px solid var(--border-dark); border-radius: var(--radius-sm);
+  overflow: hidden; background: var(--surface);
+}
 .radius-input-wrap input {
-  padding-right: 52px; padding-left: 26px;
-  -moz-appearance: textfield; text-align: center;
+  flex: 1; min-width: 0;
+  text-align: center; padding: 7px 4px;
+  border: none; border-radius: 0;
+  -moz-appearance: textfield;
 }
 .radius-input-wrap input::-webkit-outer-spin-button,
 .radius-input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.radius-input-wrap .km-label {
-  position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
-  font-size: 0.78rem; color: var(--text-muted); pointer-events: none;
-  font-weight: 600;
+.m-label {
+  font-size: 0.77rem; color: var(--text-muted); font-weight: 600;
+  pointer-events: none;
 }
 .radius-step-btn {
-  position: absolute; top: 50%; transform: translateY(-50%);
-  width: 20px; height: 20px; border: none; background: none;
-  color: var(--text-muted); font-size: 0.95rem; font-weight: 700;
+  flex-shrink: 0; width: 28px;
+  border: none; background: var(--surface2);
+  color: var(--text-muted); font-size: 1rem; font-weight: 700;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  border-radius: 3px; line-height: 1; user-select: none;
-  transition: background var(--tr), color var(--tr);
+  line-height: 1; user-select: none; transition: background var(--tr), color var(--tr);
 }
 .radius-step-btn:hover { background: var(--border); color: var(--text); }
-.radius-step-btn.minus { left: 3px; }
-.radius-step-btn.plus  { right: 30px; }
+.radius-step-btn.minus { border-right: 1px solid var(--border-dark); }
+.radius-step-btn.plus  { border-left:  1px solid var(--border-dark); }
 
-.alert-inline { font-size: 0.79rem; color: #b91c1c; display: none; align-self: flex-end; padding-bottom: 10px; }
+.alert-inline { font-size: 0.78rem; color: #b91c1c; display: none; align-self: flex-end; padding-bottom: 8px; }
 .alert-inline.show { display: block; }
 
 /* ── Buttons ── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   padding: 8px 18px; border-radius: var(--radius-sm); border: 1px solid transparent;
-  font-size: 0.83rem; font-family: inherit; font-weight: 600; cursor: pointer;
-  transition: background var(--tr), border-color var(--tr), opacity var(--tr);
-  white-space: nowrap; flex-shrink: 0;
+  font-size: 0.82rem; font-family: inherit; font-weight: 600; cursor: pointer;
+  transition: background var(--tr), border-color var(--tr), box-shadow var(--tr), opacity var(--tr);
+  white-space: nowrap; flex-shrink: 0; letter-spacing: 0.01em;
 }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.btn:active:not(:disabled) { opacity: 0.85; }
-.btn-black   { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
-.btn-black:hover:not(:disabled) { background: #111; }
-.btn-outline { background: transparent; color: var(--text); border-color: var(--border-dark); }
-.btn-outline:hover:not(:disabled) { background: var(--surface2); }
-.btn-ghost   { background: transparent; color: var(--text-muted); border-color: var(--border-dark); }
-.btn-ghost:hover:not(:disabled)  { color: var(--text); border-color: #aaa; background: var(--surface2); }
+.btn:active:not(:disabled) { transform: translateY(1px); opacity: 0.9; }
+.btn-primary {
+  background: var(--red); color: #fff; border-color: var(--red);
+  box-shadow: 0 2px 6px rgba(255,27,44,0.28);
+}
+.btn-primary:hover:not(:disabled) { background: var(--red-dark); border-color: var(--red-dark); box-shadow: 0 3px 10px rgba(255,27,44,0.35); }
+.btn-black { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.btn-black:hover:not(:disabled) { background: #2d2d2d; }
+.btn-ghost {
+  background: var(--surface); color: var(--text-muted);
+  border-color: var(--border-dark);
+}
+.btn-ghost:hover:not(:disabled) { color: var(--text); border-color: #aaa; background: var(--surface2); }
+.btn-excel {
+  background: #fff; color: #111; border-color: var(--border-dark);
+  gap: 5px; padding: 5px 11px; font-size: 0.75rem; font-weight: 600;
+}
+.btn-excel:hover:not(:disabled) { background: var(--surface2); border-color: #aaa; }
+.btn-group { display: flex; gap: 6px; flex-shrink: 0; }
 
-/* ── Content ── */
-.content {
-  flex: 1; min-height: 0;
-  max-width: 1160px; width: 100%; margin: 0 auto;
-  padding: 24px 28px 32px;
+/* ── Main Split Layout ── */
+.main-split { display: flex; flex: 1; min-height: 0; }
+
+/* ── Map Pane ── */
+.map-pane { flex: 1; min-width: 0; position: relative; overflow: hidden; }
+#kakao-map { width: 100%; height: 100%; }
+
+/* ── List Toggle Button ── */
+.list-toggle-btn {
+  position: absolute; top: 50%; right: 0; transform: translateY(-50%);
+  width: 20px; height: 52px; z-index: 10;
+  background: #FFF7F8; border: 1px solid var(--border);
+  border-right: none; border-radius: 6px 0 0 6px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); box-shadow: -2px 0 6px rgba(0,0,0,0.10);
+  transition: background var(--tr), color var(--tr);
+}
+.list-toggle-btn:hover { background: var(--surface2); color: var(--text); }
+
+/* ── List Pane ── */
+.list-pane {
+  width: 800px; flex-shrink: 0;
   display: flex; flex-direction: column;
-}
-
-/* ── Result panel ── */
-.result-panel {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); box-shadow: var(--shadow);
-  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
-}
-
-/* ── Result bar (검색바와 같은 레벨) ── */
-.result-bar {
-  display: none;
+  border-left: 1px solid var(--border);
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  transition: width 0.25s ease;
+  overflow: hidden;
 }
-.result-bar.show { display: block; }
-.result-bar-inner {
-  max-width: 1160px; margin: 0 auto; padding: 12px 28px;
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-}
-/* 검색 필터 */
-.filter-wrap { position: relative; flex: 1; min-width: 160px; max-width: 280px; }
-.filter-wrap input {
-  padding-left: 32px; font-size: 0.82rem;
-  background: var(--surface2); border-color: var(--border);
-}
-.filter-wrap .filter-icon {
-  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-  pointer-events: none; color: var(--text-dim);
-}
-/* 결과 카운트 */
-.result-count { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
-.result-count strong { color: var(--text); font-variant-numeric: tabular-nums; }
-.result-bar-spacer { flex: 1; }
-.btn-group { display: flex; gap: 7px; flex-shrink: 0; }
+.list-pane.collapsed { width: 0; border-left-color: transparent; }
+.list-pane.full-width { width: 100%; border-left: none; }
 
-/* ── 프랜차이즈 필터 ── */
-.franchise-filter {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 0.81rem; color: var(--text-muted);
-  cursor: pointer; user-select: none; flex-shrink: 0;
-  padding: 0 4px;
+/* ── List Pane Bar ── */
+.list-pane-bar {
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  background: var(--surface); padding: 10px 16px;
+  display: flex; flex-direction: column; gap: 8px;
 }
-.franchise-filter input[type="checkbox"] {
-  width: 15px; height: 15px; cursor: pointer;
-  accent-color: var(--accent); flex-shrink: 0;
-}
+.list-bar-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.list-bar-controls { display: flex; align-items: center; gap: 8px; }
 
 /* ── Stat chips ── */
-.stat-row {
-  display: flex; flex-wrap: wrap; gap: 7px;
-  padding: 10px 18px; border-bottom: 1px solid var(--border);
-  flex-shrink: 0; background: var(--surface2);
-}
+.stat-row { display: flex; flex-wrap: wrap; gap: 5px; }
 .stat-chip {
   display: flex; align-items: center; gap: 5px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 20px; padding: 3px 11px; font-size: 0.77rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 2px 10px; font-size: 0.73rem;
 }
 .stat-chip-label { color: var(--text-muted); }
-.stat-chip-val   { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.stat-chip-val { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* ── Filter ── */
+.filter-wrap { position: relative; flex: 1; min-width: 120px; }
+.filter-wrap input { padding-left: 29px; font-size: 0.8rem; background: var(--surface2); border-color: var(--border); padding-top: 5px; padding-bottom: 5px; }
+.filter-wrap .filter-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-dim); }
+.result-count { font-size: 0.77rem; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+.result-count strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.coord-resolved { font-size: 0.69rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Franchise Filter ── */
+.franchise-filter {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.77rem; color: var(--text-muted);
+  cursor: pointer; user-select: none; flex-shrink: 0; white-space: nowrap;
+}
+.franchise-filter input[type="checkbox"] { width: 13px; height: 13px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0; }
 
 /* ── Table ── */
 .table-scroll { overflow-y: auto; overflow-x: auto; flex: 1; min-height: 0; }
-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
-
+table { width: 100%; border-collapse: collapse; font-size: 0.81rem; }
 thead th {
   position: sticky; top: 0; z-index: 2;
   background: var(--surface2); border-bottom: 1px solid var(--border);
-  padding: 11px 16px; text-align: left;
-  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 8px 12px; text-align: left;
+  font-size: 0.67rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
   color: var(--text-muted); white-space: nowrap; user-select: none;
 }
 th.sortable { cursor: pointer; }
-th.sortable:hover { color: var(--text); background: #e6ebf5; }
-th.sorted   { color: var(--text); }
-
-.sort-icon { display: inline-flex; flex-direction: column; gap: 1px; vertical-align: middle; margin-left: 5px; opacity: 0.35; }
+th.sortable:hover { color: var(--text); background: #eceef2; }
+th.sorted { color: var(--text); }
+.sort-icon { display: inline-flex; flex-direction: column; gap: 1px; vertical-align: middle; margin-left: 4px; opacity: 0.35; }
 .sort-icon span { display: block; width: 0; height: 0; }
-.sort-icon .asc-tri  { border-left: 3.5px solid transparent; border-right: 3.5px solid transparent; border-bottom: 4px solid currentColor; }
-.sort-icon .desc-tri { border-left: 3.5px solid transparent; border-right: 3.5px solid transparent; border-top:  4px solid currentColor; }
+.sort-icon .asc-tri  { border-left: 3px solid transparent; border-right: 3px solid transparent; border-bottom: 3.5px solid currentColor; }
+.sort-icon .desc-tri { border-left: 3px solid transparent; border-right: 3px solid transparent; border-top:   3.5px solid currentColor; }
 th.sorted .sort-icon { opacity: 1; }
 th.sorted.asc  .sort-icon .desc-tri { opacity: 0.2; }
 th.sorted.desc .sort-icon .asc-tri  { opacity: 0.2; }
-
-tbody tr { border-bottom: 1px solid var(--border); transition: background var(--tr); }
+tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background var(--tr); }
 tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: #f9f9f9; }
-tbody td { padding: 12px 16px; vertical-align: middle; }
-.cell-no   { color: var(--text-dim); font-variant-numeric: tabular-nums; width: 48px; text-align: right; font-size: 0.76rem; }
-.cell-name { font-weight: 600; min-width: 140px; }
-.cell-cat  { font-size: 0.76rem; color: var(--text-muted); white-space: nowrap; min-width: 90px; }
-.cell-code { font-family: monospace; font-size: 0.77rem; color: var(--text-muted); white-space: nowrap; }
-.cell-addr { font-size: 0.76rem; color: var(--text-muted); min-width: 200px; max-width: 280px; word-break: break-all; }
-.cell-dist { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+tbody tr:hover { background: #f4f6fa; }
+tbody tr.row-selected { background: var(--red-bg) !important; }
+tbody tr.row-selected:hover { background: #FFE4E6 !important; }
+tbody td { padding: 9px 12px; vertical-align: middle; }
+.cell-no   { color: var(--text-dim); font-variant-numeric: tabular-nums; width: 40px; text-align: right; font-size: 0.72rem; }
+.cell-name { font-weight: 600; min-width: 120px; font-size: 0.72rem; }
+.cell-cat  { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; min-width: 70px; }
+.cell-code { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+.cell-addr { font-size: 0.72rem; color: var(--text-muted); min-width: 160px; word-break: break-all; }
+.cell-dist { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; font-size: 0.72rem; }
 
 /* ── Pagination ── */
 .pagination {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 12px 18px; border-top: 1px solid var(--border);
-  background: var(--surface2); flex-shrink: 0; gap: 6px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 9px 14px; border-top: 1px solid var(--border);
+  background: var(--surface2); flex-shrink: 0; gap: 5px;
 }
-.page-info { font-size: 0.75rem; color: var(--text-dim); }
-.page-controls { display: flex; align-items: center; gap: 3px; justify-content: center; }
+.page-info { font-size: 0.71rem; color: var(--text-dim); }
+.page-controls { display: flex; align-items: center; gap: 3px; justify-content: center; flex-wrap: wrap; }
 .page-btn {
-  min-width: 30px; height: 30px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-  background: var(--surface); color: var(--text-muted); font-size: 0.79rem;
+  min-width: 27px; height: 27px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text-muted); font-size: 0.76rem;
   font-family: inherit; font-weight: 500; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: background var(--tr), border-color var(--tr), color var(--tr); padding: 0 7px;
+  transition: background var(--tr), border-color var(--tr), color var(--tr); padding: 0 6px;
 }
 .page-btn:hover:not(:disabled):not(.active) { background: var(--surface2); border-color: var(--border-dark); color: var(--text); }
-.page-btn.active  { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+.page-btn.active { background: var(--red); border-color: var(--red); color: #fff; font-weight: 700; }
 .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.page-ellipsis { color: var(--text-dim); font-size: 0.79rem; padding: 0 3px; }
+.page-ellipsis { color: var(--text-dim); font-size: 0.76rem; padding: 0 2px; }
 
 /* ── Empty / Loading ── */
 .empty-state {
   flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; text-align: center; padding: 60px 24px;
+  align-items: center; justify-content: center; text-align: center; padding: 40px 20px;
   color: var(--text-dim);
 }
 .empty-icon {
-  width: 46px; height: 46px; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 6px; display: flex; align-items: center; justify-content: center; margin: 0 auto 13px;
+  width: 44px; height: 44px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;
 }
-.empty-state h3 { font-size: 0.87rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
-.empty-state p  { font-size: 0.79rem; }
-
+.empty-state h3 { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+.empty-state p  { font-size: 0.77rem; }
 .loading-state {
   flex: 1; display: none; flex-direction: column;
-  align-items: center; justify-content: center; padding: 60px;
-  color: var(--text-muted); font-size: 0.85rem;
+  align-items: center; justify-content: center; padding: 40px;
+  color: var(--text-muted); font-size: 0.83rem;
 }
 .loading-state.show { display: flex; }
 .spinner {
@@ -307,9 +335,132 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   animation: spin 0.7s linear infinite; margin-bottom: 12px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+.no-result-row td { text-align: center; padding: 32px; color: var(--text-dim); font-size: 0.81rem; }
 
-.no-result-row td {
-  text-align: center; padding: 40px; color: var(--text-dim); font-size: 0.83rem;
+/* ── Admin Auth Modal ── */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  z-index: 500; backdrop-filter: blur(2px);
+}
+.modal-box {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 501;
+  background: white; border-radius: 12px;
+  padding: 28px 28px 22px; min-width: 290px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.modal-title { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+.modal-desc  { font-size: 0.8rem; color: var(--text-muted); margin-top: -4px; }
+.modal-pin-input { font-size: 1.4rem; letter-spacing: 0.5em; text-align: center; padding: 10px; border-radius: var(--radius-sm); }
+.modal-pin-error { font-size: 0.76rem; color: #ef4444; display: none; }
+.modal-pin-error.show { display: block; }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+
+/* ── Admin Page ── */
+#admin-page {
+  position: fixed; inset: 0; z-index: 400;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+}
+.admin-header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 12px 24px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.admin-header-left h2 { font-size: 0.93rem; font-weight: 700; }
+.admin-header-left .admin-sub { font-size: 0.77rem; color: var(--text-muted); margin-top: 1px; }
+.admin-controls { display: flex; align-items: center; gap: 10px; }
+.admin-search-wrap { position: relative; width: 240px; }
+.admin-search-wrap input { padding-left: 29px; font-size: 0.82rem; }
+.admin-search-wrap .search-ic { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-dim); pointer-events: none; }
+.admin-body { flex: 1; overflow: auto; background: white; }
+.admin-body table { font-size: 0.82rem; }
+.admin-body thead th { padding: 9px 14px; }
+.admin-body tbody td { padding: 8px 14px; }
+.admin-footer {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 14px; border-top: 1px solid var(--border);
+  background: var(--surface2); flex-shrink: 0; gap: 4px;
+}
+
+/* ── Footer ── */
+.footer {
+  background: #ffffff;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+}
+.footer-inner {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+}
+
+/* ── 반응형 (모바일) ── */
+@media (max-width: 768px) {
+  /* 페이지 전체 스크롤 허용 */
+  html, body {
+    height: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  body { flex: none; min-height: 100vh; }
+
+  /* 검색바: 세로 배치 */
+  .search-bar-inner { flex-direction: column; align-items: stretch; gap: 8px; }
+  .sf-mode, .sf-coord, .sf-radius { width: 100%; }
+  .sf-radius { width: auto; }
+  .btn { width: 100%; justify-content: center; }
+  .alert-inline { width: 100%; }
+
+  /* 메인 레이아웃: 수직 전환, 자연 높이 */
+  .main-split {
+    flex-direction: column;
+    flex: none;
+    min-height: auto;
+    height: auto;
+  }
+
+  /* 리스트: 위, 전체 너비, 높이 자동 (스크롤 없이 전체 표시) */
+  .list-pane {
+    order: 1;
+    width: 100% !important;
+    flex: none;
+    height: auto;
+    border-left: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .list-pane.collapsed { width: 100% !important; height: auto; }
+
+  /* 테이블 스크롤 해제 → 전체 펼치기 */
+  .table-scroll {
+    overflow: visible;
+    height: auto;
+    flex: none;
+  }
+
+  /* 지도: 아래, 고정 높이 */
+  .map-pane {
+    order: 2;
+    flex: none;
+    height: 320px;
+    min-height: 320px;
+  }
+
+  /* 리스트 토글 버튼 숨김 */
+  .list-toggle-btn { display: none !important; }
+
+  /* 페이지네이션 줄바꿈 */
+  .page-controls { flex-wrap: wrap; }
+  .page-btn { min-width: 30px; height: 30px; }
+
+  /* 헤더 */
+  .header-meta { font-size: 0.65rem; }
 }
 </style>
 </head>
@@ -319,20 +470,23 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
 <header class="header">
   <div class="header-inner">
     <div class="logo">
-      <svg height="20" viewBox="0 0 197.44 42.66" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
-        <style>.pc1{fill-rule:evenodd}.pc1,.pc2{fill:#f23}</style>
-        <g>
-          <path class="pc2" d="M191.2,5.96c-3.88-3.71-9.17-5.9-15.11-5.9s-11.23,2.19-15.11,5.9c-4,3.83-6.24,9.29-6.24,15.4s2.24,11.57,6.24,15.4c3.88,3.71,9.17,5.9,15.11,5.9s11.23-2.19,15.11-5.9c4-3.83,6.24-9.29,6.24-15.4s-2.24-11.57-6.24-15.4ZM184.43,29.45c-2.04,2.2-4.83,3.49-8.35,3.49s-6.3-1.29-8.35-3.49c-1.88-2.1-2.96-4.79-2.96-8.09s1.03-5.99,2.91-8.09c2.04-2.2,4.89-3.49,8.4-3.49s6.3,1.29,8.35,3.49c1.88,2.1,2.96,4.79,2.96,8.09s-1.08,5.99-2.96,8.09Z"/>
-          <path class="pc1" d="M144.57,28.06l-.19.24c-1.36,1.68-2.87,2.86-4.64,3.62h0s0,0,0,0c-1.39.64-3.12,1.02-4.96,1.02-3.59,0-6.76-1.19-8.85-3.44h0c-1.93-2.04-3.01-4.95-3.01-8.2,0-3.78,1.51-6.9,4.04-9,2.05-1.67,4.41-2.64,7.82-2.64,1.62,0,3.19.32,4.59.86,1.66.64,3.07,1.67,4.48,3.08l.21.21,7.33-6.15-.2-.24c-2.08-2.58-4.55-4.44-6.87-5.52h0c-2.71-1.24-6.02-1.91-9.77-1.91-5.77,0-10.89,1.91-14.72,5.23h0c-4.39,3.89-6.97,9.51-6.97,16.08,0,5.5,1.85,10.39,5.06,14.11h0c3.94,4.45,9.78,7.2,16.63,7.2,4.36,0,7.85-.84,10.73-2.48,2.6-1.47,4.68-3.56,6.53-6.24l.17-.25-7.41-5.57Z"/>
-        </g>
-        <polygon class="pc1" points="101.15 1.05 92.53 18.06 83.96 1.05 72.41 1.05 87.5 28.56 87.5 41.55 97.56 41.55 97.56 28.56 112.65 1.05 101.15 1.05"/>
-        <path class="pc2" d="M61.38,1.05h-13.34l-15.08,40.5h10.26l2.88-7.81h17.38l2.93,7.81h10.54L61.38,1.05ZM54.74,10.37l5.35,14.26h-10.6l5.25-14.26Z"/>
-        <path class="pc2" d="M31.02,6.32h0s0,0,0,0c-1.47-1.81-3.34-3.23-5.66-4.19-1.77-.74-4.48-1.08-6.55-1.08H0v40.5h10.05v-10.96h8.76c2.47,0,5.46-.56,7.61-1.58,2.9-1.36,5.05-3.75,6.36-6.58h0c.9-2.04,1.41-4.3,1.41-6.67,0-3.56-1.13-6.84-3.17-9.44ZM21.74,20.96c-.74.34-1.97.74-3.7.74h-8.53v-11.64h8.04c1.49,0,2.92.22,3.74.57,1.16.5,1.98,1.19,2.5,2.13.46.81.68,1.8.68,3.01,0,2.62-.89,4.32-2.73,5.19Z"/>
-      </svg>
-      식권 사용처 검색
+      <a href="/" style="display:flex;align-items:center;text-decoration:none;line-height:1;">
+        <svg height="22" viewBox="0 0 343.27 44.8" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+          <polygon fill="#191919" points="62.13,34.88 68.08,34.88 68.08,9.86 62.13,9.86 62.13,19.5 51.36,19.5 51.36,9.86 45.4,9.86 45.4,34.88 51.36,34.88 51.36,25.69 51.36,25.21 62.13,25.24 62.13,25.69"/>
+          <polygon fill="#191919" points="16.61,24.86 5.36,9.21 0,11.97 0,34.88 5.82,34.88 5.82,19.79 17.62,35.69 17.64,35.69 22.5,33.16 22.5,9.86 16.61,9.86"/>
+          <polygon fill="#191919" points="96.81,19.79 108.61,35.69 108.63,35.69 113.49,33.15 113.49,9.86 107.6,9.86 107.6,24.86 96.34,9.21 90.99,11.97 90.99,34.87 96.81,34.87"/>
+          <path fill="#191919" d="M135.98,1.12h19.71c2.18,0,5.02,0.35,6.85,1.12c2.42,1,4.37,2.48,5.9,4.37c2.13,2.71,3.31,6.14,3.31,9.86c0,2.48-0.53,4.84-1.48,6.96c-1.36,2.95-3.6,5.43-6.61,6.85c-2.24,1.06-5.37,1.65-7.97,1.65h-9.68v11.69h-10.03V1.12z M154.87,22.55c1.77,0,3.07-0.41,3.84-0.77c2.24-1.06,2.77-3.19,2.77-5.31c0-2.3-0.77-4.19-3.25-5.25c-0.83-0.35-2.3-0.59-3.9-0.59h-8.32v11.92H154.87z"/>
+          <path fill="#191919" d="M217.45,43.61h-10.5l-3.13-8.32h-19l-3.07,8.32h-10.21l15.82-42.49h13.75L217.45,43.61z M200.46,26.26l-6.2-16.53l-6.08,16.53H200.46z"/>
+          <path fill="#191919" d="M239.25,26.85v16.76h-10.03V26.85L213.4,1.12h11.51l9.32,15.29l9.38-15.29h11.45L239.25,26.85z"/>
+          <path fill="#191919" d="M259.98,37.18c-3.36-3.9-5.31-9.03-5.31-14.81c0-6.91,2.71-12.81,7.32-16.88C266,2.01,271.37,0,277.45,0c3.95,0,7.44,0.71,10.27,2.01c2.42,1.12,5.02,3.07,7.2,5.78l-7.32,6.14c-1.53-1.53-3.07-2.66-4.9-3.36c-1.53-0.59-3.25-0.94-5.02-0.94c-3.72,0-6.32,1.06-8.56,2.89c-2.77,2.3-4.43,5.72-4.43,9.86c0,3.54,1.18,6.73,3.3,8.97c2.3,2.48,5.78,3.78,9.68,3.78c2.01,0,3.89-0.41,5.43-1.12c1.95-0.83,3.6-2.12,5.08-3.95l7.38,5.55c-1.95,2.83-4.13,5.02-6.85,6.55c-3.01,1.71-6.67,2.6-11.27,2.6C270.25,44.74,264.11,41.84,259.98,37.18z"/>
+          <path fill="#191919" d="M304.97,38.6c-4.19-4.01-6.55-9.74-6.55-16.17c0-6.43,2.36-12.16,6.55-16.17c4.07-3.9,9.62-6.2,15.88-6.2s11.8,2.3,15.88,6.2c4.19,4.01,6.55,9.74,6.55,16.17c0,6.43-2.36,12.16-6.55,16.17c-4.07,3.9-9.62,6.2-15.88,6.2S309.04,42.49,304.97,38.6z M329.99,31.28c2.07-2.3,3.25-5.25,3.25-8.85c0-3.6-1.18-6.55-3.25-8.85c-2.24-2.42-5.31-3.84-9.15-3.84c-3.84,0-6.96,1.42-9.21,3.84c-2.07,2.3-3.19,5.25-3.19,8.85c0,3.6,1.18,6.55,3.25,8.85c2.24,2.42,5.31,3.84,9.15,3.84C324.68,35.12,327.75,33.7,329.99,31.28z"/>
+        </svg>
+      </a>
+      <div class="logo-sep"></div>
+      <span class="logo-service">식권 사용처 검색</span>
     </div>
     <div class="header-right">
-      <div class="header-meta">데이터 기준일: 2026년 5월 20일</div>
+      <div class="header-meta" onclick="openAdminAuth()" title="">데이터 기준일: 2026년 5월 20일</div>
     </div>
   </div>
 </header>
@@ -342,10 +496,10 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   <div class="search-bar-inner">
     <div class="sf sf-mode">
       <label>검색 유형</label>
-      <div class="mode-toggle">
-        <button class="mode-btn active" id="mode-addr" onclick="setMode('addr')">주소</button>
-        <button class="mode-btn" id="mode-name" onclick="setMode('name')">매장명</button>
-      </div>
+      <select id="mode-select" class="mode-select" onchange="setMode(this.value)">
+        <option value="addr">주소</option>
+        <option value="name">매장명</option>
+      </select>
     </div>
     <div class="sf sf-coord">
       <label id="search-label">주소</label>
@@ -353,15 +507,16 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
     <div class="sf sf-radius" id="sf-radius">
       <label>반경</label>
-      <div class="radius-input-wrap">
-        <button class="radius-step-btn minus" type="button" onclick="stepRadius(-1)">−</button>
-        <input type="number" id="s-radius" value="1" min="0.1" max="5" step="any"
-          oninput="limitDecimal(this)">
-        <span class="km-label">km</span>
-        <button class="radius-step-btn plus" type="button" onclick="stepRadius(1)">+</button>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <div class="radius-input-wrap">
+          <button class="radius-step-btn minus" type="button" onclick="stepRadius(-1)">−</button>
+          <input type="number" id="s-radius" value="1000" min="100" max="5000" step="100">
+          <button class="radius-step-btn plus" type="button" onclick="stepRadius(1)">+</button>
+        </div>
+        <span class="m-label">m</span>
       </div>
     </div>
-    <button class="btn btn-black" id="search-btn" onclick="runSearch()" style="align-self:flex-end;">
+    <button class="btn btn-primary" id="search-btn" onclick="runSearch()" style="align-self:flex-end;">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
         <circle cx="5.5" cy="5.5" r="4" stroke="white" stroke-width="1.4"/>
         <line x1="8.7" y1="8.7" x2="12" y2="12" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
@@ -370,50 +525,55 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </button>
     <div class="alert-inline" id="search-alert"></div>
   </div>
-</div>
-
-<!-- Result bar (검색바와 같은 레벨 → 버튼 우측 정렬 일치) -->
-<div class="result-bar" id="result-bar">
-  <div class="result-bar-inner">
-    <div class="filter-wrap">
-      <svg class="filter-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="6" cy="6" r="4.2" stroke="currentColor" stroke-width="1.3"/>
-        <line x1="9.2" y1="9.2" x2="13" y2="13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-      </svg>
-      <input type="text" id="filter-input" placeholder="매장명 또는 주소 검색"
-        oninput="applyFilter()">
-    </div>
-    <div class="result-count" id="result-count"></div>
+  <!-- 검색 결과 요약 (검색 후 노출) -->
+  <div class="search-stat-row" id="stat-bar" style="display:none;">
+    <div class="stat-row" id="stat-row"></div>
     <div class="coord-resolved" id="coord-resolved" style="display:none;"></div>
-    <div class="result-bar-spacer"></div>
-    <label class="franchise-filter">
-      <input type="checkbox" id="exclude-franchise" onchange="applyFilter()">
-      프랜차이즈 매장 제외
-    </label>
-    <div class="btn-group">
-      <button class="btn btn-ghost" onclick="downloadCSV()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M6 1v7M3.5 6l2.5 2.5L8.5 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M1 10.5h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-        </svg>
-        CSV
-      </button>
-      <button class="btn btn-black" onclick="downloadXLSX()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M6 1v7M3.5 6l2.5 2.5L8.5 6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M1 10.5h10" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
-        </svg>
-        Excel
-      </button>
-    </div>
   </div>
 </div>
 
-<!-- Content -->
-<div class="content">
-  <div class="result-panel" id="result-panel">
+<!-- Main Split -->
+<div class="main-split">
+  <!-- Map Pane -->
+  <div class="map-pane" id="map-pane">
+    <div id="kakao-map"></div>
+    <button class="list-toggle-btn" id="list-toggle-btn" onclick="toggleListPane()" title="목록 접기/펼치기">
+      <svg id="list-toggle-icon" width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <polyline points="3,1 7,5 3,9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
 
-    <!-- Empty -->
+  <!-- List Pane -->
+  <div class="list-pane" id="list-pane">
+    <div class="list-pane-bar" id="list-pane-bar" style="display:none;">
+      <div class="list-bar-controls">
+        <div class="filter-wrap">
+          <svg class="filter-icon" width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <circle cx="6" cy="6" r="4.2" stroke="currentColor" stroke-width="1.3"/>
+            <line x1="9.2" y1="9.2" x2="12" y2="12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          <input type="text" id="filter-input" placeholder="매장명 또는 주소 검색" oninput="applyFilter()">
+        </div>
+        <div class="result-count" id="result-count"></div>
+        <label class="franchise-filter" id="starbucks-filter-wrap">
+          <input type="checkbox" id="exclude-starbucks" onchange="applyFilter()">
+          스타벅스 제외
+        </label>
+        <label class="franchise-filter">
+          <input type="checkbox" id="exclude-franchise" onchange="applyFilter()">
+          프랜차이즈 제외
+        </label>
+        <button class="btn btn-excel" onclick="downloadXLSX()" title="엑셀로 다운로드">
+          <svg width="14" height="14" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+            <rect width="18" height="18" rx="3" fill="#1D6F42"/>
+            <path d="M3.5 3.5L7.2 9L3.5 14.5H5.9L9 10.1L12.1 14.5H14.5L10.8 9L14.5 3.5H12.1L9 7.9L5.9 3.5Z" fill="white"/>
+          </svg>
+          <span>엑셀 다운로드</span>
+        </button>
+      </div>
+    </div>
+
     <div class="empty-state" id="empty-state">
       <div class="empty-icon">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -425,69 +585,143 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <p id="empty-hint">주소를 입력한 뒤 검색을 실행하세요</p>
     </div>
 
-    <!-- Loading -->
     <div class="loading-state" id="loading-state">
-      <div class="spinner"></div>
-      거리 계산 중...
+      <div class="spinner"></div>거리 계산 중...
     </div>
 
-    <!-- Result -->
-    <div id="result-inner" style="display:none;flex-direction:column;flex:1;min-height:0;">
-
-      <!-- Stat chips -->
-      <div class="stat-row" id="stat-row"></div>
-
-      <!-- Table -->
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th id="th-no" class="sortable" onclick="sortBy('no')">
-                No <span class="sort-icon"><span class="asc-tri"></span><span class="desc-tri"></span></span>
-              </th>
-              <th id="th-name" class="sortable" onclick="sortBy('name')">
-                가맹점명 <span class="sort-icon"><span class="asc-tri"></span><span class="desc-tri"></span></span>
-              </th>
-              <th>카테고리</th>
-              <th>가맹점코드</th>
-              <th>주소</th>
-              <th id="th-dist" class="sortable sorted asc" onclick="sortBy('dist')">
-                거리 <span class="sort-icon"><span class="asc-tri"></span><span class="desc-tri"></span></span>
-              </th>
-            </tr>
-          </thead>
-          <tbody id="result-body"></tbody>
-        </table>
-      </div>
-
-      <!-- Pagination -->
-      <div class="pagination">
-        <div class="page-info" id="page-info"></div>
-        <div class="page-controls" id="page-controls"></div>
-      </div>
+    <div class="table-scroll" id="table-scroll" style="display:none;">
+      <table id="result-table">
+        <thead>
+          <tr>
+            <th id="th-no" class="sortable" onclick="sortBy('no')">No <span class="sort-icon"><span class="asc-tri"></span><span class="desc-tri"></span></span></th>
+            <th id="th-name" class="sortable" onclick="sortBy('name')">가맹점명 <span class="sort-icon"><span class="asc-tri"></span><span class="desc-tri"></span></span></th>
+            <th>카테고리</th>
+            <th>가맹점코드</th>
+            <th>주소</th>
+            <th id="th-dist" class="sortable sorted asc" onclick="sortBy('dist')">거리 <span class="sort-icon"><span class="asc-tri"></span><span class="desc-tri"></span></span></th>
+          </tr>
+        </thead>
+        <tbody id="result-body"></tbody>
+      </table>
     </div>
 
+    <div class="pagination" id="pagination-wrap" style="display:none;">
+      <div class="page-info" id="page-info"></div>
+      <div class="page-controls" id="page-controls"></div>
+    </div>
   </div>
 </div>
 
-<script>
-const DATA_URL  = 'https://raw.githubusercontent.com/kaist124-cyber/coupon-store-search/main/data.csv?v=20260520b';
-const PAGE_SIZE = 50;
+<!-- Admin Auth Modal -->
+<div id="admin-auth-modal" style="display:none;">
+  <div class="modal-backdrop" onclick="closeAdminAuth()"></div>
+  <div class="modal-box">
+    <div class="modal-title">관리자 인증</div>
+    <div class="modal-desc">인증코드 4자리를 입력하세요</div>
+    <input type="password" id="admin-pin" class="modal-pin-input" maxlength="4" placeholder="••••"
+      oninput="if(this.value.length===4) checkAdminPin()"
+      onkeydown="if(event.key==='Enter') checkAdminPin()">
+    <div class="modal-pin-error" id="admin-pin-error">인증코드가 올바르지 않습니다</div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeAdminAuth()">취소</button>
+      <button class="btn btn-black" onclick="checkAdminPin()">확인</button>
+    </div>
+  </div>
+</div>
 
-let merchants      = [];
-let searchResults  = [];   // 검색 원본 (dist asc)
-let displayResults = [];   // 필터+정렬 적용 후
-let currentPage    = 1;
-let sortCol        = 'dist';
-let sortDir        = 'asc';
-let filterText     = '';
-let searchMode     = 'addr';
+<!-- Admin Page -->
+<div id="admin-page" style="display:none;">
+  <div class="admin-header">
+    <div class="admin-header-left">
+      <h2>관리자 페이지</h2>
+      <div class="admin-sub" id="admin-sub"></div>
+    </div>
+    <div class="admin-controls">
+      <div class="admin-search-wrap">
+        <svg class="search-ic" width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <circle cx="6" cy="6" r="4.2" stroke="currentColor" stroke-width="1.3"/>
+          <line x1="9.2" y1="9.2" x2="12" y2="12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="admin-search" placeholder="매장명 또는 가맹점코드 검색" oninput="adminSearch()">
+      </div>
+      <select id="admin-settle" class="mode-select" onchange="adminSearch()" style="width:130px;">
+        <option value="">대금정산 전체</option>
+        <option value="Y">대금정산 Y</option>
+        <option value="N">대금정산 N</option>
+      </select>
+      <select id="admin-map" class="mode-select" onchange="adminSearch()" style="width:130px;">
+        <option value="">지도노출 전체</option>
+        <option value="Y">지도노출 Y</option>
+        <option value="N">지도노출 N</option>
+      </select>
+      <label class="franchise-filter" style="white-space:nowrap;">
+        <input type="checkbox" id="admin-excl-franchise" onchange="adminSearch()">
+        프랜차이즈 제외
+      </label>
+      <button class="btn btn-ghost" onclick="closeAdminPage()">✕ 닫기</button>
+    </div>
+  </div>
+  <div class="admin-body">
+    <table>
+      <thead>
+        <tr>
+          <th>NO</th>
+          <th>프랜차이즈</th>
+          <th>가맹점코드</th>
+          <th>카테고리</th>
+          <th>가맹점명</th>
+          <th>가맹점 주소</th>
+          <th>위도</th>
+          <th>경도</th>
+          <th>대금정산여부</th>
+          <th>지도노출여부</th>
+        </tr>
+      </thead>
+      <tbody id="admin-body"></tbody>
+    </table>
+  </div>
+  <div class="admin-footer">
+    <div class="page-info" id="admin-page-info"></div>
+    <div class="page-controls" id="admin-page-controls"></div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-inner">ⓒ NHN PAYCO Corp. All Rights Reserved.</div>
+</footer>
+
+<script>
+const DATA_URL  = 'https://raw.githubusercontent.com/kaist124-cyber/coupon-store-search/main/data.csv';
+const PAGE_SIZE = 50;
+const ADMIN_PAGE_SIZE = 100;
+
+let merchants           = [];
+let searchResults       = [];
+let displayResults      = [];
+let currentPage         = 1;
+let searchResultMarkers = [];
+let selectedSearchIdx   = null;
+let listPaneCollapsed   = false;
+let kakaoMap            = null;
+let mapCenter           = null;
+let mapCircle           = null;
+let mapCenterOverlay    = null;
+let mapInfoWindow       = null;
+let sortCol             = 'dist';
+let sortDir             = 'asc';
+let filterText          = '';
+let searchMode          = 'addr';
+
+// 관리자
+let adminResults = [];
+let adminPage    = 1;
 
 /* ── 모드 전환 ── */
 function setMode(mode) {
   searchMode = mode;
-  document.getElementById('mode-addr').classList.toggle('active', mode === 'addr');
-  document.getElementById('mode-name').classList.toggle('active', mode === 'name');
+  const sel = document.getElementById('mode-select');
+  if (sel) sel.value = mode;
   document.getElementById('sf-radius').style.display = mode === 'addr' ? '' : 'none';
   document.getElementById('search-label').textContent = mode === 'addr' ? '주소' : '매장명';
   document.getElementById('s-addr').placeholder =
@@ -497,26 +731,72 @@ function setMode(mode) {
   document.getElementById('s-addr').value = '';
   document.getElementById('coord-resolved').style.display = 'none';
   document.getElementById('search-alert').classList.remove('show');
+
+  // 기존 검색 결과·마커 초기화
+  clearMapObjects();
+  searchResults = [];
+  displayResults = [];
+  selectedSearchIdx = null;
+  mapCenter = null;
+
+  // 스타벅스 제외 체크박스: 주소 검색에서만 노출
+  const sbWrap = document.getElementById('starbucks-filter-wrap');
+  if (sbWrap) {
+    sbWrap.style.display = mode === 'addr' ? '' : 'none';
+    if (mode === 'name') document.getElementById('exclude-starbucks').checked = false;
+  }
+
+  // 지도 패널 & 토글 버튼: 매장명 모드에서는 숨김, 리스트는 전체 너비
+  const mapPane       = document.getElementById('map-pane');
+  const listPane      = document.getElementById('list-pane');
+  const listToggleBtn = document.getElementById('list-toggle-btn');
+  if (mode === 'name') {
+    mapPane.style.display       = 'none';
+    listToggleBtn.style.display = 'none';
+    listPane.classList.add('full-width');
+    listPane.classList.remove('collapsed');
+    listPaneCollapsed = false;
+  } else {
+    mapPane.style.display       = '';
+    listToggleBtn.style.display = '';
+    listPane.classList.remove('full-width');
+    setTimeout(() => { if (kakaoMap) kakaoMap.relayout(); }, 300);
+  }
+
   setView('empty');
 }
 
-/* ── 반경 소수점 1자리 제한 ── */
-function limitDecimal(el) {
-  const v = el.value;
-  if (v.includes('.')) {
-    const parts = v.split('.');
-    if (parts[1] && parts[1].length > 1) {
-      el.value = parseFloat(v).toFixed(1);
-    }
-  }
-}
-
-/* ── 반경 ±1km 버튼 ── */
+/* ── 반경 ±500m ── */
 function stepRadius(dir) {
   const el = document.getElementById('s-radius');
-  const cur = parseFloat(el.value) || 1;
-  const next = dir > 0 ? Math.floor(cur) + 1 : Math.ceil(cur) - 1;
-  el.value = Math.max(0.1, Math.min(5, next));
+  const cur = parseInt(el.value) || 1000;
+  const next = Math.round(cur / 500) * 500 + (dir > 0 ? 500 : -500);
+  el.value = Math.max(100, Math.min(5000, next));
+}
+
+/* ── 지도 초기화 ── */
+function initMap() {
+  const container = document.getElementById('kakao-map');
+  kakaoMap = new kakao.maps.Map(container, {
+    center: new kakao.maps.LatLng(37.5665, 126.9780),
+    level: 8
+  });
+  // 줌 컨트롤 추가
+  const zoomControl = new kakao.maps.ZoomControl();
+  kakaoMap.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
+}
+
+/* ── 리스트 패널 토글 ── */
+function toggleListPane() {
+  listPaneCollapsed = !listPaneCollapsed;
+  document.getElementById('list-pane').classList.toggle('collapsed', listPaneCollapsed);
+  const icon = document.getElementById('list-toggle-icon');
+  if (listPaneCollapsed) {
+    icon.innerHTML = '<polyline points="7,1 3,5 7,9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+  } else {
+    icon.innerHTML = '<polyline points="3,1 7,5 3,9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+  setTimeout(() => { if (kakaoMap) kakaoMap.relayout(); }, 270);
 }
 
 /* ── 데이터 로드 ── */
@@ -533,18 +813,12 @@ function loadData() {
             return n;
           });
           merchants = norm.filter(r => !isNaN(parseFloat(r['위도'])) && !isNaN(parseFloat(r['경도'])));
-          setPill('ok', `<strong>${merchants.length.toLocaleString()}개</strong> 가맹점`);
+          runDefaultSearch();
         },
-        error() { setPill('err', '파싱 오류'); }
+        error() { }
       });
     })
-    .catch(() => setPill('err', '데이터 로드 실패'));
-}
-function setPill(state, html) {
-  const dot  = document.getElementById('data-dot');
-  const text = document.getElementById('data-pill-text');
-  if (dot)  dot.className = 'dot ' + state;
-  if (text) text.innerHTML = html;
+    .catch(() => { });
 }
 
 /* ── Haversine ── */
@@ -559,56 +833,44 @@ function haversine(lat1, lon1, lat2, lon2) {
 function runSearch() {
   document.getElementById('search-alert').classList.remove('show');
   if (!merchants.length) { showAlert('데이터 로드 중입니다. 잠시 후 다시 시도하세요.'); return; }
-
-  if (searchMode === 'name') {
-    runNameSearch();
-  } else {
-    runAddrSearch();
-  }
+  if (searchMode === 'name') runNameSearch();
+  else runAddrSearch();
 }
 
 function runNameSearch() {
   const query = document.getElementById('s-addr').value.trim();
   if (!query) { showAlert('매장명을 입력하세요.'); return; }
-
   document.getElementById('coord-resolved').style.display = 'none';
   document.getElementById('filter-input').value = '';
   filterText = '';
   setView('loading');
-
   setTimeout(() => {
     const q = query.toLowerCase();
     const matched = merchants
       .filter(m => (m['가맹점명']||'').toLowerCase().includes(q))
       .map(m => ({ 가맹점명: m['가맹점명']||'', 카테고리: m['카테고리']||'', 가맹점코드: m['가맹점키']||'', 주소: m['가맹점 주소']||'', 프랜차이즈: m['프랜차이즈']||'', distKm: null }));
-
     matched.sort((a,b) => a.가맹점명.localeCompare(b.가맹점명, 'ko'));
     searchResults = matched;
-
     sortCol = 'name'; sortDir = 'asc';
-    document.querySelector('table').classList.add('hide-dist');
+    document.getElementById('result-table').classList.add('hide-dist');
     updateSortHeaders();
-
     document.getElementById('stat-row').innerHTML = `
       <div class="stat-chip"><span class="stat-chip-label">총 결과</span><span class="stat-chip-val">${matched.length.toLocaleString()}건</span></div>
-      <div class="stat-chip"><span class="stat-chip-label">검색어</span><span class="stat-chip-val">${esc(query)}</span></div>
-    `;
-
+      <div class="stat-chip"><span class="stat-chip-label">검색어</span><span class="stat-chip-val">${esc(query)}</span></div>`;
     applyFilter();
     setView('result');
   }, 20);
 }
 
 function runAddrSearch() {
-  const radius = parseFloat(parseFloat(document.getElementById('s-radius').value).toFixed(1));
-  if (isNaN(radius) || radius < 0.1 || radius > 5) { showAlert('반경은 0.1~5km 사이로 입력하세요.'); return; }
-
+  const radiusM = parseInt(document.getElementById('s-radius').value) || 1000;
+  if (isNaN(radiusM) || radiusM < 100 || radiusM > 5000) { showAlert('반경은 100~5,000m 사이로 입력하세요.'); return; }
   const addr = document.getElementById('s-addr').value.trim();
   if (!addr) { showAlert('주소를 입력하세요.'); return; }
 
   document.getElementById('search-btn').disabled = true;
   document.getElementById('coord-resolved').style.display = 'none';
-  document.querySelector('table').classList.remove('hide-dist');
+  document.getElementById('result-table').classList.remove('hide-dist');
 
   const geocoder = new kakao.maps.services.Geocoder();
   geocoder.addressSearch(addr, function(result, status) {
@@ -617,21 +879,26 @@ function runAddrSearch() {
       document.getElementById('search-btn').disabled = false;
       return;
     }
-
-    const lat = parseFloat(result[0].y);
-    const lon = parseFloat(result[0].x);
+    const lat    = parseFloat(result[0].y);
+    const lon    = parseFloat(result[0].x);
+    const radius = radiusM / 1000; // km
 
     const coordEl = document.getElementById('coord-resolved');
     coordEl.textContent = `위도: ${lat.toFixed(5)} / 경도: ${lon.toFixed(5)}`;
     coordEl.style.display = 'block';
 
+    mapCenter = { lat, lon, radius };
     setView('loading');
     document.getElementById('filter-input').value = '';
     filterText = '';
+    selectedSearchIdx = null;
 
     setTimeout(() => {
       const matched = [];
       for (const m of merchants) {
+        // 대금정산여부 또는 지도노출여부가 N이면 주소 검색 제외
+        if ((m['대금정산여부']||'').toUpperCase() === 'N') continue;
+        if ((m['지도노출여부']||'').toUpperCase() === 'N') continue;
         const d = haversine(lat, lon, parseFloat(m['위도']), parseFloat(m['경도']));
         if (d <= radius) matched.push({
           가맹점명: m['가맹점명']||'', 카테고리: m['카테고리']||'', 가맹점코드: m['가맹점키']||'', 주소: m['가맹점 주소']||'', 프랜차이즈: m['프랜차이즈']||'', distKm: d
@@ -639,22 +906,20 @@ function runAddrSearch() {
       }
       matched.sort((a,b) => a.distKm - b.distKm);
       searchResults = matched;
-
       sortCol = 'dist'; sortDir = 'asc';
       updateSortHeaders();
-
       const total = matched.length;
       const nearM = total ? Math.round(matched[0].distKm * 1000) : null;
       const farM  = total ? Math.round(matched[total-1].distKm * 1000) : null;
       document.getElementById('stat-row').innerHTML = `
         <div class="stat-chip"><span class="stat-chip-label">총 결과</span><span class="stat-chip-val">${total.toLocaleString()}건</span></div>
         <div class="stat-chip"><span class="stat-chip-label">최근접</span><span class="stat-chip-val">${nearM!==null ? nearM.toLocaleString()+'m' : '—'}</span></div>
-        <div class="stat-chip"><span class="stat-chip-label">최원거리</span><span class="stat-chip-val">${farM!==null ? farM.toLocaleString()+'m' : '—'}</span></div>
-      `;
-
+        <div class="stat-chip"><span class="stat-chip-label">최원거리</span><span class="stat-chip-val">${farM!==null ? farM.toLocaleString()+'m' : '—'}</span></div>`;
       applyFilter();
+      renderKakaoMap();
       setView('result');
       document.getElementById('search-btn').disabled = false;
+      setTimeout(() => { if (kakaoMap) kakaoMap.relayout(); }, 50);
     }, 30);
   });
 }
@@ -668,30 +933,129 @@ function showAlert(msg) {
 function applyFilter() {
   filterText = document.getElementById('filter-input').value.trim().toLowerCase();
   const excludeFranchise = document.getElementById('exclude-franchise')?.checked;
-
+  const excludeStarbucks = document.getElementById('exclude-starbucks')?.checked;
   displayResults = searchResults.filter(r => {
+    if (excludeStarbucks && (r.가맹점코드||'').toUpperCase().startsWith('SB_')) return false;
     if (excludeFranchise && r['프랜차이즈'] === 'Y') return false;
-    if (filterText) {
-      return r.가맹점명.toLowerCase().includes(filterText) ||
-             r.주소.toLowerCase().includes(filterText);
-    }
+    if (filterText) return r.가맹점명.toLowerCase().includes(filterText) || r.주소.toLowerCase().includes(filterText);
     return true;
   });
   applySort();
 }
 
+/* ── 지도 렌더링 ── */
+function renderKakaoMap() {
+  if (!mapCenter || !kakaoMap) return;
+  const { lat, lon, radius } = mapCenter;
+
+  kakaoMap.setCenter(new kakao.maps.LatLng(lat, lon));
+  kakaoMap.setLevel(radiusToLevel(radius));
+  clearMapObjects();
+
+  // 반경 원
+  mapCircle = new kakao.maps.Circle({
+    map: kakaoMap,
+    center: new kakao.maps.LatLng(lat, lon),
+    radius: radius * 1000,
+    strokeWeight: 2, strokeColor: '#3b4a6b', strokeOpacity: 0.7,
+    fillColor: '#3b4a6b', fillOpacity: 0.05
+  });
+
+  mapInfoWindow = new kakao.maps.InfoWindow({ zIndex: 50 });
+  window._mapIW = mapInfoWindow;
+
+  // 가맹점 마커 생성 (searchResults 기준)
+  searchResultMarkers = new Array(searchResults.length).fill(null);
+  searchResults.forEach((r, i) => {
+    const pos  = merchants.find(m => m['가맹점명'] === r.가맹점명 && m['가맹점키'] === r.가맹점코드);
+    const mLat = pos ? parseFloat(pos['위도']) : null;
+    const mLon = pos ? parseFloat(pos['경도']) : null;
+    if (!mLat || !mLon) return;
+
+    const marker  = new kakao.maps.Marker({ position: new kakao.maps.LatLng(mLat, mLon), zIndex: 1 });
+    const distTxt = r.distKm !== null ? `${Math.round(r.distKm * 1000).toLocaleString()}m` : '';
+    const content = `<div style="position:relative;padding:10px 32px 10px 13px;font-size:13px;font-family:'Malgun Gothic',sans-serif;min-width:140px;line-height:1.7;">
+      <button onclick="if(window._mapIW)window._mapIW.close();" style="position:absolute;top:6px;right:7px;border:none;background:none;cursor:pointer;font-size:15px;color:#aaa;line-height:1;padding:0;" title="닫기">✕</button>
+      <strong>${esc(r.가맹점명)}</strong><br>
+      <span style="color:#888;font-size:11px;">${esc(r.카테고리||'')}${distTxt ? ' · ' + distTxt : ''}</span><br>
+      <span style="color:#aaa;font-size:11px;">${esc(r.주소)}</span>
+    </div>`;
+
+    kakao.maps.event.addListener(marker, 'click', () => {
+      selectResult(i, false);
+      mapInfoWindow.setContent(content);
+      mapInfoWindow.open(kakaoMap, marker);
+    });
+    searchResultMarkers[i] = { marker, content };
+  });
+
+  updateMarkerVisibility();
+
+  // 중심 핀: 마커보다 나중에 생성해 항상 최상단에 표시
+  const pinEl = document.createElement('div');
+  pinEl.style.cssText = 'pointer-events:none;';
+  pinEl.innerHTML = `<svg width="36" height="50" viewBox="0 0 36 50" xmlns="http://www.w3.org/2000/svg" style="display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.35));">
+    <path d="M18 0C8.059 0 0 8.059 0 18c0 13.255 18 32 18 32S36 31.255 36 18C36 8.059 27.941 0 18 0z" fill="#FF1B2C"/>
+    <circle cx="18" cy="18" r="8" fill="white"/>
+  </svg>`;
+  mapCenterOverlay = new kakao.maps.CustomOverlay({
+    map: kakaoMap,
+    position: new kakao.maps.LatLng(lat, lon),
+    content: pinEl,
+    yAnchor: 1,
+    zIndex: 10
+  });
+}
+
+function updateMarkerVisibility() {
+  const visibleSet = new Set(displayResults.map(r => searchResults.indexOf(r)));
+  searchResultMarkers.forEach((data, i) => {
+    if (!data) return;
+    data.marker.setMap(visibleSet.has(i) ? kakaoMap : null);
+  });
+}
+
+function clearMapObjects() {
+  searchResultMarkers.forEach(data => { if (data) data.marker.setMap(null); });
+  searchResultMarkers = [];
+  if (mapCircle)        { mapCircle.setMap(null);        mapCircle       = null; }
+  if (mapCenterOverlay) { mapCenterOverlay.setMap(null);  mapCenterOverlay= null; }
+  if (mapInfoWindow)    { mapInfoWindow.close();          mapInfoWindow   = null; }
+}
+
+function radiusToLevel(km) {
+  if (km <= 0.15) return 3;
+  if (km <= 0.25) return 4;
+  if (km <= 0.5)  return 4;
+  if (km <= 1)    return 5;
+  if (km <= 2)    return 6;
+  if (km <= 3)    return 7;
+  return 8;
+}
+
+/* ── 결과 선택 ── */
+function selectResult(searchIdx, panMap = true) {
+  selectedSearchIdx = searchIdx;
+  document.querySelectorAll('#result-body tr').forEach(tr => {
+    tr.classList.toggle('row-selected', parseInt(tr.dataset.searchIdx) === searchIdx);
+  });
+  const row = document.querySelector(`#result-body tr[data-search-idx="${searchIdx}"]`);
+  if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const data = searchResultMarkers[searchIdx];
+  if (data && kakaoMap && mapInfoWindow) {
+    mapInfoWindow.setContent(data.content);
+    mapInfoWindow.open(kakaoMap, data.marker);
+    if (panMap) kakaoMap.panTo(data.marker.getPosition());
+  }
+}
+
 /* ── 정렬 ── */
 function sortBy(col) {
-  if (sortCol === col) {
-    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-  } else {
-    sortCol = col;
-    sortDir = 'asc';
-  }
+  if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortCol = col; sortDir = 'asc'; }
   updateSortHeaders();
   applySort();
 }
-
 function applySort() {
   const sorted = [...displayResults];
   sorted.sort((a, b) => {
@@ -704,8 +1068,8 @@ function applySort() {
   displayResults = sorted;
   currentPage = 1;
   renderPage(1);
+  updateMarkerVisibility();
 }
-
 function updateSortHeaders() {
   ['no','name','dist'].forEach(col => {
     const th = document.getElementById('th-' + col);
@@ -714,14 +1078,14 @@ function updateSortHeaders() {
   });
 }
 
-/* ── 뷰 전환 ── */
+/* ── 뷰 상태 ── */
 function setView(state) {
-  document.getElementById('empty-state').style.display   = state === 'empty'   ? 'flex' : 'none';
-  document.getElementById('loading-state').style.display = state === 'loading' ? 'flex' : 'none';
-  document.getElementById('result-inner').style.display  = state === 'result'  ? 'flex' : 'none';
-  const rb = document.getElementById('result-bar');
-  if (state === 'result') rb.classList.add('show');
-  else rb.classList.remove('show');
+  document.getElementById('empty-state').style.display     = state === 'empty'   ? 'flex' : 'none';
+  document.getElementById('loading-state').style.display   = state === 'loading' ? 'flex' : 'none';
+  document.getElementById('table-scroll').style.display    = state === 'result'  ? ''     : 'none';
+  document.getElementById('pagination-wrap').style.display = state === 'result'  ? ''     : 'none';
+  document.getElementById('list-pane-bar').style.display   = state === 'result'  ? ''     : 'none';
+  document.getElementById('stat-bar').style.display        = state === 'result'  ? ''     : 'none';
 }
 
 /* ── 페이지 렌더링 ── */
@@ -730,65 +1094,59 @@ function renderPage(page) {
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
   page = Math.min(Math.max(1, page), lastPage);
   currentPage = page;
-
   const start = (page - 1) * PAGE_SIZE;
   const slice = displayResults.slice(start, start + PAGE_SIZE);
 
   const body = document.getElementById('result-body');
   body.innerHTML = '';
-
   if (total === 0) {
     const tr = document.createElement('tr');
     tr.className = 'no-result-row';
-    tr.innerHTML = `<td colspan="5">검색 결과가 없습니다</td>`;
+    tr.innerHTML = `<td colspan="6">검색 결과가 없습니다</td>`;
     body.appendChild(tr);
   } else {
-    slice.forEach((r, i) => {
-      const origIdx = searchResults.indexOf(r);
-      const distCell = r.distKm !== null ? `${Math.round(r.distKm * 1000).toLocaleString()}m` : '—';
+    slice.forEach((r, sliceIdx) => {
+      const searchIdx = searchResults.indexOf(r);
+      const displayNo = start + sliceIdx + 1;
+      const distCell  = r.distKm !== null ? `${Math.round(r.distKm * 1000).toLocaleString()}m` : '—';
       const tr = document.createElement('tr');
+      tr.dataset.searchIdx = searchIdx;
+      if (selectedSearchIdx === searchIdx) tr.classList.add('row-selected');
+      tr.onclick = () => selectResult(searchIdx);
       tr.innerHTML = `
-        <td class="cell-no">${origIdx + 1}</td>
+        <td class="cell-no">${displayNo}</td>
         <td class="cell-name">${esc(r.가맹점명)}</td>
         <td class="cell-cat">${esc(r.카테고리)}</td>
         <td class="cell-code">${esc(r.가맹점코드)}</td>
         <td class="cell-addr">${esc(r.주소)}</td>
-        <td class="cell-dist">${distCell}</td>
-      `;
+        <td class="cell-dist">${distCell}</td>`;
       body.appendChild(tr);
     });
   }
 
-  // 결과 카운트
-  const countEl = document.getElementById('result-count');
-  countEl.innerHTML = filterText
+  document.getElementById('result-count').innerHTML = filterText
     ? `<strong>${total.toLocaleString()}</strong> / ${searchResults.length.toLocaleString()}건`
     : `총 <strong>${total.toLocaleString()}</strong>건`;
 
-  // 페이지 info
   const from = total ? start + 1 : 0;
   const to   = Math.min(start + PAGE_SIZE, total);
   document.getElementById('page-info').textContent = total ? `${from}–${to} / ${total.toLocaleString()}건` : '';
-
-  renderPagination(page, lastPage);
-  document.querySelector('.table-scroll').scrollTop = 0;
+  renderPagination(page, lastPage, 'page-controls', renderPage);
+  document.getElementById('table-scroll').scrollTop = 0;
 }
 
-function renderPagination(cur, last) {
-  const ctrl = document.getElementById('page-controls');
+function renderPagination(cur, last, ctrlId, goFn) {
+  const ctrl = document.getElementById(ctrlId);
   ctrl.innerHTML = '';
-
   const mkBtn = (label, page, disabled, active) => {
     const b = document.createElement('button');
     b.className = 'page-btn' + (active ? ' active' : '');
     b.disabled  = disabled;
     b.innerHTML = label;
-    if (!disabled && !active) b.onclick = () => renderPage(page);
+    if (!disabled && !active) b.onclick = () => goFn(page);
     return b;
   };
-
   ctrl.appendChild(mkBtn('&#8592;', cur-1, cur===1, false));
-
   const pages = getPageRange(cur, last);
   let prev = null;
   for (const p of pages) {
@@ -800,7 +1158,6 @@ function renderPagination(cur, last) {
     ctrl.appendChild(mkBtn(p, p, false, p === cur));
     prev = p;
   }
-
   ctrl.appendChild(mkBtn('&#8594;', cur+1, cur===last, false));
 }
 
@@ -823,33 +1180,133 @@ function getTs() {
     '_' + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0') + String(d.getSeconds()).padStart(2,'0');
 }
 function buildRows() {
-  return displayResults.map((r,i) => ({
+  return displayResults.map(r => ({
     'No': searchResults.indexOf(r)+1, '가맹점명': r.가맹점명,
     '카테고리': r.카테고리, '가맹점코드': r.가맹점코드, '주소': r.주소,
-    '거리(m)': Math.round(r.distKm * 1000)
+    '거리(m)': r.distKm !== null ? Math.round(r.distKm * 1000) : ''
   }));
-}
-function downloadCSV() {
-  if (!displayResults.length) return;
-  const blob = new Blob(['﻿' + Papa.unparse(buildRows())], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `식권사용처_${getTs()}.csv`; a.click();
 }
 function downloadXLSX() {
   if (!displayResults.length) return;
   const ws = XLSX.utils.json_to_sheet(buildRows());
-  ws['!cols'] = [{wch:5},{wch:28},{wch:10},{wch:50},{wch:8}];
+  ws['!cols'] = [{wch:5},{wch:28},{wch:12},{wch:12},{wch:50},{wch:8}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '검색결과');
   XLSX.writeFile(wb, `식권사용처_${getTs()}.xlsx`);
+}
+
+/* ── 디폴트 검색 ── */
+function runDefaultSearch() {
+  document.getElementById('s-addr').value = '구로구 디지털로 26길 72';
+  runSearch();
+}
+
+/* ── 관리자 인증 ── */
+function openAdminAuth() {
+  document.getElementById('admin-pin').value = '';
+  document.getElementById('admin-pin-error').classList.remove('show');
+  document.getElementById('admin-auth-modal').style.display = '';
+  setTimeout(() => document.getElementById('admin-pin').focus(), 50);
+}
+function closeAdminAuth() {
+  document.getElementById('admin-auth-modal').style.display = 'none';
+}
+function checkAdminPin() {
+  const pin = document.getElementById('admin-pin').value;
+  if (pin === '9785') {
+    closeAdminAuth();
+    showAdminPage();
+  } else {
+    document.getElementById('admin-pin-error').classList.add('show');
+    document.getElementById('admin-pin').value = '';
+    document.getElementById('admin-pin').focus();
+  }
+}
+
+/* ── 관리자 페이지 ── */
+function showAdminPage() {
+  document.getElementById('admin-search').value = '';
+  document.getElementById('admin-settle').value = '';
+  document.getElementById('admin-map').value = '';
+  document.getElementById('admin-excl-franchise').checked = false;
+  adminResults = [...merchants];
+  document.getElementById('admin-sub').textContent = `전체 ${merchants.length.toLocaleString()}개 가맹점`;
+  document.getElementById('admin-page').style.display = '';
+  renderAdminPage(1);
+}
+function closeAdminPage() {
+  document.getElementById('admin-page').style.display = 'none';
+}
+function adminSearch() {
+  const q        = document.getElementById('admin-search').value.trim().toLowerCase();
+  const settle   = document.getElementById('admin-settle').value;
+  const mapShow  = document.getElementById('admin-map').value;
+  const exclFran = document.getElementById('admin-excl-franchise').checked;
+
+  adminResults = merchants.filter(m => {
+    if (q && !(
+      (m['가맹점명']||'').toLowerCase().includes(q) ||
+      (m['가맹점키']||'').toLowerCase().includes(q)
+    )) return false;
+    if (settle  && (m['대금정산여부']||'').toUpperCase() !== settle)  return false;
+    if (mapShow && (m['지도노출여부']||'').toUpperCase() !== mapShow) return false;
+    if (exclFran && (m['프랜차이즈']||'').toUpperCase() === 'Y')      return false;
+    return true;
+  });
+
+  const sub = adminResults.length === merchants.length
+    ? `전체 ${merchants.length.toLocaleString()}개 가맹점`
+    : `전체 ${merchants.length.toLocaleString()}개 중 ${adminResults.length.toLocaleString()}개`;
+  document.getElementById('admin-sub').textContent = sub;
+  renderAdminPage(1);
+}
+function renderAdminPage(page) {
+  const total    = adminResults.length;
+  const lastPage = Math.max(1, Math.ceil(total / ADMIN_PAGE_SIZE));
+  page = Math.min(Math.max(1, page), lastPage);
+  adminPage = page;
+  const start = (page - 1) * ADMIN_PAGE_SIZE;
+  const slice = adminResults.slice(start, start + ADMIN_PAGE_SIZE);
+
+  const body = document.getElementById('admin-body');
+  body.innerHTML = '';
+  slice.forEach((m, i) => {
+    const settle  = (m['대금정산여부']||'').toUpperCase();
+    const mapShow = (m['지도노출여부']||'').toUpperCase();
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="cell-no">${m['NO']||start+i+1}</td>
+      <td class="cell-cat" style="text-align:center;">${esc(m['프랜차이즈']||'')}</td>
+      <td class="cell-code">${esc(m['가맹점키']||'')}</td>
+      <td class="cell-cat">${esc(m['카테고리']||'')}</td>
+      <td class="cell-name">${esc(m['가맹점명']||'')}</td>
+      <td class="cell-addr">${esc(m['가맹점 주소']||'')}</td>
+      <td class="cell-no">${esc(m['위도']||'')}</td>
+      <td class="cell-no">${esc(m['경도']||'')}</td>
+      <td class="cell-cat" style="text-align:center;color:${settle==='N'?'#ef4444':'inherit'};font-weight:${settle==='N'?'700':'400'}">${settle}</td>
+      <td class="cell-cat" style="text-align:center;color:${mapShow==='N'?'#ef4444':'inherit'};font-weight:${mapShow==='N'?'700':'400'}">${mapShow}</td>`;
+    body.appendChild(tr);
+  });
+
+  const from = total ? start + 1 : 0;
+  const to   = Math.min(start + ADMIN_PAGE_SIZE, total);
+  document.getElementById('admin-page-info').textContent = total ? `${from}–${to} / ${total.toLocaleString()}건` : '';
+  renderPagination(page, lastPage, 'admin-page-controls', renderAdminPage);
 }
 
 /* ── 엔터 ── */
 ['s-addr','s-radius'].forEach(id =>
   document.getElementById(id).addEventListener('keydown', e => { if (e.key==='Enter') runSearch(); })
 );
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeAdminAuth();
+    closeAdminPage();
+  }
+});
 
 setView('empty');
+initMap();
 loadData();
 </script>
 </body>
