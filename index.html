@@ -577,6 +577,10 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
           <input type="checkbox" id="exclude-starbucks" onchange="applyFilter()">
           스타벅스 제외
         </label>
+        <label class="franchise-filter" id="convenience-filter-wrap">
+          <input type="checkbox" id="exclude-convenience" onchange="applyFilter()">
+          편의점 제외
+        </label>
         <label class="franchise-filter">
           <input type="checkbox" id="exclude-franchise" onchange="applyFilter()">
           프랜차이즈 제외
@@ -756,11 +760,16 @@ function setMode(mode) {
   selectedSearchIdx = null;
   mapCenter = null;
 
-  // 스타벅스 제외 체크박스: 주소 검색에서만 노출
+  // 스타벅스/편의점 제외 체크박스: 주소 검색에서만 노출
   const sbWrap = document.getElementById('starbucks-filter-wrap');
   if (sbWrap) {
     sbWrap.style.display = mode === 'addr' ? '' : 'none';
     if (mode === 'name') document.getElementById('exclude-starbucks').checked = false;
+  }
+  const convWrap = document.getElementById('convenience-filter-wrap');
+  if (convWrap) {
+    convWrap.style.display = mode === 'addr' ? '' : 'none';
+    if (mode === 'name') document.getElementById('exclude-convenience').checked = false;
   }
 
   // 지도 패널 & 토글 버튼: 매장명 모드에서는 숨김, 리스트는 전체 너비
@@ -949,11 +958,13 @@ function showAlert(msg) {
 /* ── 필터 ── */
 function applyFilter() {
   filterText = document.getElementById('filter-input').value.trim().toLowerCase();
-  const excludeFranchise = document.getElementById('exclude-franchise')?.checked;
-  const excludeStarbucks = document.getElementById('exclude-starbucks')?.checked;
+  const excludeFranchise  = document.getElementById('exclude-franchise')?.checked;
+  const excludeStarbucks  = document.getElementById('exclude-starbucks')?.checked;
+  const excludeConvenience = document.getElementById('exclude-convenience')?.checked;
   displayResults = searchResults.filter(r => {
-    if (excludeStarbucks && (r.가맹점코드||'').toUpperCase().startsWith('SB_')) return false;
-    if (excludeFranchise && r['프랜차이즈'] === 'Y') return false;
+    if (excludeStarbucks  && (r.가맹점코드||'').toUpperCase().startsWith('SB_')) return false;
+    if (excludeConvenience && r.카테고리 === '편의점') return false;
+    if (excludeFranchise  && r['프랜차이즈'] === 'Y') return false;
     if (filterText) return r.가맹점명.toLowerCase().includes(filterText) || r.주소.toLowerCase().includes(filterText);
     return true;
   });
